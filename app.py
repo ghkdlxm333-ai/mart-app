@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 st.set_page_config(page_title="Tesco 수주 자동 변환 시스템", layout="wide")
 
 # 고정된 서식 파일 이름
-MASTER_TEMPLATE = "Tesco_서식파일_업데이트용.xlsx"
+MASTER_TEMPLATE = "Tesco 서식파일_업데이트용.xlsx"
 
 # 최종 통합 수주업로드 양식 컬럼 (사용자 제공 양식 기준)
 FINAL_COLUMNS = [
