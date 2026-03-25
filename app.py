@@ -9,7 +9,7 @@ from datetime import datetime, timedelta, timezone
 st.set_page_config(page_title="Tesco 수주 자동 변환기", layout="wide")
 
 # 고정된 서식 파일 경로 (GitHub에 업로드한 파일명과 일치해야 함)
-TEMPLATE_PATH = "Tesco_Template.xlsx" 
+TEMPLATE_PATH = "Tesco 서식파일(914)_260325납품(싱글타입확인).xlsx" 
 
 # 사내 표준 양식 컬럼
 FINAL_COLUMNS = ['출고구분', '수주일자', '납품일자', '발주처코드', '발주처', '배송코드', '배송지', '상품코드', '상품명', 'UNIT수량', 'UNIT단가', '금액', '부가세', 'LOT', '특이사항1', 'Type', '특이사항2']
