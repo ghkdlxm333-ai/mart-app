@@ -6,7 +6,7 @@ import openpyxl
 from datetime import datetime, timedelta, timezone
 
 # --- 1. 페이지 및 환경 설정 ---
-st.set_page_config(page_title="Tesco 수주 자동 변환 시스템", layout="wide")
+st.set_page_config(page_title="Tesco_서식파일_업데이트용.xlsx", layout="wide")
 
 # 고정된 서식 파일 이름
 MASTER_TEMPLATE = "Tesco_서식파일_업데이트용.xlsx"
