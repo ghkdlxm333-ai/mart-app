@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 st.set_page_config(page_title="Tesco 수주 통합 변환 시스템", layout="wide")
 
 # 고정된 서식 파일 이름 (GitHub에 업로드한 파일명과 일치해야 함)
-TEMPLATE_FILE = "Tesco 서식파일(914)_260325납품(싱글타입확인)"
+TEMPLATE_FILE = "Tesco 서식파일(914)_260325납품(싱글타입확인).xlsx"
 
 # 사용자가 요청한 '통합 수주업로드' 최종 컬럼 양식 (공백까지 정확히 일치)
 FINAL_COLUMNS = [
