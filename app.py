@@ -68,4 +68,73 @@ def process_mart_data(ordview_file, item_map, store_map):
     
     res_list = []
     for _, row in summary.iterrows():
-        # 마스터 매핑 키
+        # 마스터 매핑 키 생성
+        m_key = f"{row['납품처코드']} {row['납품처']}{row['입고타입']}"
+        store_info = store_map.get(m_key, {})
+        
+        # 사내 상품코드로 변환 (바코드 -> ME코드)
+        internal_item_code = item_map.get(row['상품코드'], row['상품코드'])
+        
+        # 데이터 구성 (공백이 포함된 컬럼명 준수)
+        res_list.append({
+            '출고구분': '0',
+            '수주일자': today_str,
+            '납품일자': str(row['납품일자']).replace('-', '')[:8],
+            '발주처코드': store_info.get('발주처코드', row['납품처코드']),
+            '발주처': row['납품처'],
+            '배송코드': store_info.get('배송코드', row['배송처코드']),
+            '배송지': store_info.get('배송지', row['배송처']),
+            '상품코드': internal_item_code,
+            '상품명': row['상품명'],
+            'UNIT수량': int(row['낱개수량']),
+            'UNIT단가': int(row['낱개당 단가']),
+            '금        액': int(row['발주금액']),
+            '부  가   세': int(row['발주금액'] * 0.1),
+            'LOT': '',
+            '특이사항': '',
+            'Type': row['입고타입']
+        })
+    
+    final_df = pd.DataFrame(res_list)
+    
+    # 최종 컬럼 순서 및 누락 컬럼 보정
+    for col in FINAL_COLUMNS:
+        if col not in final_df.columns:
+            final_df[col] = ''
+            
+    return df, final_df[FINAL_COLUMNS]
+
+# --- 4. 메인 UI ---
+st.title("🛒 Tesco 수주 통합 업로드 (합산 모드)")
+
+item_map, store_map, error_msg = load_fixed_master()
+
+if error_msg:
+    st.error(error_msg)
+else:
+    st.success("✅ 마스터 데이터 로드 완료 (중복 자동 정리됨)")
+    
+    ordview_file = st.file_uploader("ordview(Raw) 파일을 업로드하세요", type=['xlsx', 'xls'])
+
+    if ordview_file:
+        try:
+            raw_transformed, final_df = process_mart_data(ordview_file, item_map, store_map)
+            
+            st.divider()
+            st.subheader(f"📊 수주 합산 결과 (총 {len(final_df)}행)")
+            st.dataframe(final_df, use_container_width=True)
+            
+            # 엑셀 다운로드
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                # index=False로 저장하여 1행부터 데이터가 나오게 함
+                final_df.to_excel(writer, index=False, sheet_name='서식')
+            
+            st.download_button(
+                label="📥 통합 수주 파일 다운로드",
+                data=output.getvalue(),
+                file_name=f"Tesco_통합수주_합산_{today_str}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+        except Exception as e:
+            st.error(f"❌ 처리 오류: {e}")
