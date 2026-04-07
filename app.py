@@ -29,7 +29,7 @@ def load_master_data(path):
     except Exception as e:
         return {}, [], str(e)
 
-st.title("🛒 홈플러스 수주 자동화 (중복 합산용)")
+st.title("🛒 홈플러스 수주 자동화 (중복 합산 버전)")
 
 MASTER_FILE = "Tesco_서식파일_업데이트용.xlsx"
 prod_dict, store_list, error = load_master_data(MASTER_FILE)
@@ -41,13 +41,13 @@ else:
 
     if uploaded_file:
         try:
-            # ordview 읽기 및 전처리
+            # ordview 읽기 (header=1은 데이터 시작 위치에 따라 조정 가능)
             df_raw = pd.read_excel(uploaded_file, header=1)
             df_raw = df_raw[pd.to_numeric(df_raw['발주수량'], errors='coerce') > 0].copy()
 
             temp_rows = []
             for _, row in df_raw.iterrows():
-                # 배송지 정보 추출
+                # 배송지 정보 추출 (I열 납품처 기준)
                 raw_place = str(row.get('납품처', '')).strip()
                 place_num = raw_place[:4]
                 in_type = str(row.get('입고타입', '')).strip().replace('HYPER_', '')
@@ -84,19 +84,42 @@ else:
                 })
 
             # --- [핵심] 데이터 합산 로직 ---
-            df_temp = pd.DataFrame(temp_rows)
-            
-            # 합산 기준 열: 배송코드, 상품코드 (납품일자 등이 다를 수 있어 포함)
-            group_cols = ['출고구분', '수주일자', '납품일자', '발주처코드', '발주처', '배송코드', '배송지', '상품코드', '상품명', 'UNIT단가', 'Type']
-            
-            # 수량 합산
-            df_final = df_temp.groupby(group_cols, as_index=False)['UNIT수량'].sum()
-            
-            # 합산된 수량을 바탕으로 금액 및 부가세 재계산
-            df_final['금        액'] = df_final['UNIT수량'] * df_final['UNIT단가']
-            df_final['부  가   세'] = (df_final['금        액'] * 0.1).astype(int)
-            
-            # 열 순서 정리
-            df_final = df_final[['출고구분', '수주일자', '납품일자', '발주처코드', '발주처', '배송코드', '배송지', '상품코드', '상품명', 'UNIT수량', 'UNIT단가', '금        액', '부  가   세', 'Type']]
+            if temp_rows:
+                df_temp = pd.DataFrame(temp_rows)
+                
+                # 합산 기준 열들
+                group_cols = ['출고구분', '수주일자', '납품일자', '발주처코드', '발주처', '배송코드', '배송지', '상품코드', '상품명', 'UNIT단가', 'Type']
+                
+                # 수량 합산 및 금액 재계산
+                df_final = df_temp.groupby(group_cols, as_index=False)['UNIT수량'].sum()
+                df_final['금        액'] = df_final['UNIT수량'] * df_final['UNIT단가']
+                df_final['부  가   세'] = (df_final['금        액'] * 0.1).astype(int)
+                
+                # 열 순서 재배치
+                df_final = df_final[['출고구분', '수주일자', '납품일자', '발주처코드', '발주처', '배송코드', '배송지', '상품코드', '상품명', 'UNIT수량', 'UNIT단가', '금        액', '부  가   세', 'Type']]
 
-            st.success(f"변환 및 합산 완료! (총
+                # 오류가 났던 success 메시지 부분 수정됨
+                st.success(f"변환 및 합산 완료! (총 {len(df_final)}개의 품목)")
+                
+                # 배송코드 누락 확인
+                missing = df_final[df_final['배송코드'] == ""]
+                if not missing.empty:
+                    st.warning(f"⚠️ 배송코드 매칭 실패: {missing['배송지'].unique()}")
+
+                st.dataframe(df_final)
+
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                    df_final.to_excel(writer, index=False, sheet_name='서식업로드')
+                
+                st.download_button(
+                    label="📥 합산 결과 엑셀 다운로드",
+                    data=output.getvalue(),
+                    file_name=f"Homeplus_Grouped_{datetime.now().strftime('%m%d')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            else:
+                st.info("처리할 수 있는 수주 데이터가 없습니다.")
+
+        except Exception as e:
+            st.error(f"오류 발생: {e}")
