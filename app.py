@@ -33,7 +33,7 @@ def load_master_data(path):
     except Exception as e:
         return {}, {}, {}, str(e)
 
-st.title("🛒 홈플러스 수주 자동화 (Q열 고정 최종본)")
+st.title("🛒 홈플러스 수주 자동화 (최종본)")
 
 MASTER_FILE = "Tesco_서식파일_업데이트용.xlsx"
 prod_dict, store_map, fallback_map, error = load_master_data(MASTER_FILE)
