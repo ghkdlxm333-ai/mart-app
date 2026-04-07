@@ -3,7 +3,7 @@ import pandas as pd
 import io
 from datetime import datetime
 
-st.set_page_config(page_title="홈플러스 수주 자동화", layout="wide")
+st.set_page_config(page_title="홈플러스 수주 자동화 (합산 버전)", layout="wide")
 
 @st.cache_data
 def load_master_data(path):
@@ -13,24 +13,23 @@ def load_master_data(path):
         prod_map = {str(r['상품코드']).strip(): {'me': str(r['ME코드']).strip(), 'nm': str(r['상품명']).strip()} 
                     for _, r in df_prod.iterrows() if pd.notna(r['상품코드'])}
         
-        # 2. 배송코드 로드 (숫자 중심 매칭을 위해 처리)
+        # 2. 배송코드 로드 (숫자 기반 매칭 강화)
         df_store = pd.read_excel(path, sheet_name='Tesco 발주처코드', dtype=str)
         store_list = []
         for _, r in df_store.iterrows():
             name_val = str(r['납품처&타입']).strip() if pd.notna(r['납품처&타입']) else ""
             code_val = str(r['배송코드']).strip() if pd.notna(r['배송코드']) else ""
-            
             if name_val and code_val:
                 store_list.append({
                     'name': name_val,
-                    'num': name_val[:4], # 앞 4자리 숫자 (예: 0906)
+                    'num': name_val[:4],  # '0906' 등 추출
                     'code': code_val
                 })
         return prod_map, store_list, None
     except Exception as e:
         return {}, [], str(e)
 
-st.title("🛒 홈플러스 수주 자동화 (함안 보정 완료)")
+st.title("🛒 홈플러스 수주 자동화 (중복 합산용)")
 
 MASTER_FILE = "Tesco_서식파일_업데이트용.xlsx"
 prod_dict, store_list, error = load_master_data(MASTER_FILE)
@@ -42,38 +41,34 @@ else:
 
     if uploaded_file:
         try:
+            # ordview 읽기 및 전처리
             df_raw = pd.read_excel(uploaded_file, header=1)
             df_raw = df_raw[pd.to_numeric(df_raw['발주수량'], errors='coerce') > 0].copy()
 
-            final_rows = []
+            temp_rows = []
             for _, row in df_raw.iterrows():
-                # 배송지 정보 (I열 납품처 기준)
+                # 배송지 정보 추출
                 raw_place = str(row.get('납품처', '')).strip()
-                place_num = raw_place[:4] # ordview의 '0906' 추출
-                in_type = str(row.get('입고타입', '')).strip()
-                
-                # [강력한 매칭 로직]
+                place_num = raw_place[:4]
+                in_type = str(row.get('입고타입', '')).strip().replace('HYPER_', '')
+
+                # 배송코드 매칭 (번호 + 타입 우선, 안되면 번호 우선)
                 shipping_code = ""
-                # 1순위: 숫자(0906)와 입고타입(FLOW/SORT)이 모두 포함된 항목 찾기
                 for item in store_list:
-                    if item['num'] == place_num:
-                        # ordview의 입고타입이 마스터 이름에 포함되어 있는지 확인
-                        if in_type.replace('HYPER_', '') in item['name']:
-                            shipping_code = item['code']
-                            break
-                
-                # 2순위: 그래도 없다면 해당 숫자(0906)의 첫 번째 코드 사용
+                    if item['num'] == place_num and in_type in item['name']:
+                        shipping_code = item['code']
+                        break
                 if not shipping_code:
                     for item in store_list:
                         if item['num'] == place_num:
                             shipping_code = item['code']
                             break
 
-                # 상품 정보
+                # 상품 정보 매칭
                 p_code = str(row.get('상품코드', '')).strip()
-                p_info = prod_dict.get(p_code, {'me': '', 'nm': row.get('상품명', '')})
+                p_info = prod_dict.get(p_code, {'me': p_code, 'nm': row.get('상품명', '')})
 
-                final_rows.append({
+                temp_rows.append({
                     '출고구분': 0,
                     '수주일자': datetime.now().strftime('%Y%m%d'),
                     '납품일자': str(row.get('납품일자', '')).replace('-', '')[:8],
@@ -85,25 +80,23 @@ else:
                     '상품명': p_info['nm'],
                     'UNIT수량': int(float(row.get('발주수량', 0))),
                     'UNIT단가': int(float(row.get('낱개당 단가', 0))),
-                    '금        액': int(float(row.get('발주금액', 0))),
-                    '부  가   세': int(float(row.get('발주금액', 0)) * 0.1),
                     'Type': '마트'
                 })
 
-            df_final = pd.DataFrame(final_rows)
-            st.success(f"변환 완료!")
+            # --- [핵심] 데이터 합산 로직 ---
+            df_temp = pd.DataFrame(temp_rows)
             
-            # 실패 여부 표시
-            fail_df = df_final[df_final['배송코드'] == ""]
-            if not fail_df.empty:
-                st.warning(f"⚠️ {len(fail_df)}건의 배송코드를 찾지 못함: {fail_df['배송지'].unique()}")
+            # 합산 기준 열: 배송코드, 상품코드 (납품일자 등이 다를 수 있어 포함)
+            group_cols = ['출고구분', '수주일자', '납품일자', '발주처코드', '발주처', '배송코드', '배송지', '상품코드', '상품명', 'UNIT단가', 'Type']
+            
+            # 수량 합산
+            df_final = df_temp.groupby(group_cols, as_index=False)['UNIT수량'].sum()
+            
+            # 합산된 수량을 바탕으로 금액 및 부가세 재계산
+            df_final['금        액'] = df_final['UNIT수량'] * df_final['UNIT단가']
+            df_final['부  가   세'] = (df_final['금        액'] * 0.1).astype(int)
+            
+            # 열 순서 정리
+            df_final = df_final[['출고구분', '수주일자', '납품일자', '발주처코드', '발주처', '배송코드', '배송지', '상품코드', '상품명', 'UNIT수량', 'UNIT단가', '금        액', '부  가   세', 'Type']]
 
-            st.dataframe(df_final)
-
-            output = io.BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                df_final.to_excel(writer, index=False, sheet_name='서식업로드')
-            st.download_button(label="📥 변환 엑셀 다운로드", data=output.getvalue(), file_name="Homeplus_Upload.xlsx")
-
-        except Exception as e:
-            st.error(f"오류: {e}")
+            st.success(f"변환 및 합산 완료! (총
