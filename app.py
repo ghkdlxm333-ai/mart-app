@@ -93,4 +93,31 @@ else:
 
             if temp_rows:
                 df_temp = pd.DataFrame(temp_rows)
-                # 합산 시
+                # 합산 시 '입고타입'도 포함하여 그룹화 (강조 표시 유지용)
+                grp = ['출고구분', '수주일자', '납품일자', '발주처코드', '발주처', '배송코드', '배송지', '상품코드', '상품명', 'UNIT단가', 'Type', '입고타입']
+                df_final = df_temp.groupby(grp, as_index=False)['UNIT수량'].sum()
+                
+                df_final['금        액'] = df_final['UNIT수량'] * df_final['UNIT단가']
+                df_final['부  가   세'] = (df_final['금        액'] * 0.1).astype(int)
+                
+                # 순서 정렬 (입고타입은 화면 확인용으로 포함)
+                cols = ['출고구분', '수주일자', '납품일자', '발주처코드', '발주처', '배송코드', '배송지', '상품코드', '상품명', 'UNIT수량', 'UNIT단가', '금        액', '부  가   세', 'Type', '입고타입']
+                df_final = df_final[cols]
+
+                st.success("✅ 분석 완료! 'SINGLE' 타입은 노란색으로 표시됩니다.")
+
+                # --- [화면 출력 시 스타일 적용] ---
+                styled_df = df_final.style.apply(highlight_single, axis=1)
+                st.dataframe(styled_df, use_container_width=True)
+
+                # 다운로드용 파일에서는 '입고타입' 열 제외 (양식 준수)
+                df_download = df_final.drop(columns=['입고타입'])
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                    df_download.to_excel(writer, index=False, sheet_name='서식업로드')
+                
+                st.download_button(label="📥 결과 다운로드", data=output.getvalue(), file_name=f"Homeplus_{datetime.now().strftime('%m%d')}.xlsx")
+            else:
+                st.info("데이터가 없습니다.")
+        except Exception as e:
+            st.error(f"오류: {e}")
