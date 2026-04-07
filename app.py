@@ -8,10 +8,8 @@ st.set_page_config(page_title="홈플러스 수주 자동화 (ME코드 매칭)",
 @st.cache_data
 def load_master_data(path):
     try:
-        # 1. 상품코드 로드 (C열의 ME코드를 추출하기 위해 dtype=str 설정)
+        # 1. 상품코드 로드
         df_prod = pd.read_excel(path, sheet_name='상품코드', dtype=str)
-        # 상품코드(바코드)를 키로, ME코드를 값으로 매칭하는 맵 생성
-        # 마스터 파일의 '상품코드'열과 'ME코드'열(C열)을 사용합니다.
         prod_map = {
             str(r['상품코드']).strip(): {
                 'me': str(r['ME코드']).strip(), 
@@ -48,7 +46,7 @@ else:
 
     if uploaded_file:
         try:
-            # ordview 읽기 (낱개수량이 0보다 큰 데이터만)
+            # ordview 읽기
             df_raw = pd.read_excel(uploaded_file, header=1)
             df_raw = df_raw[pd.to_numeric(df_raw['낱개수량'], errors='coerce') > 0].copy()
 
@@ -71,9 +69,56 @@ else:
                             shipping_code = item['code']
                             break
 
-                # 3. [핵심] 상품코드 -> ME코드 매칭
+                # 3. 상품코드 -> ME코드 매칭
                 p_code = str(row.get('상품코드', '')).strip()
-                # 마스터 파일에 코드가 있으면 ME코드로 치환, 없으면 기존 코드 유지
                 p_info = prod_dict.get(p_code)
                 
                 if p_info:
+                    final_p_code = p_info['me']
+                    final_p_name = p_info['nm']
+                else:
+                    final_p_code = p_code
+                    final_p_name = row.get('상품명', '')
+
+                temp_rows.append({
+                    '출고구분': 0,
+                    '수주일자': datetime.now().strftime('%Y%m%d'),
+                    '납품일자': str(row.get('납품일자', '')).replace('-', '')[:8],
+                    '발주처코드': '81020000',
+                    '발주처': '홈플러스',
+                    '배송코드': shipping_code,
+                    '배송지': raw_place,
+                    '상품코드': final_p_code,
+                    '상품명': final_p_name,
+                    '낱개수량': int(float(row.get('낱개수량', 0))),
+                    'UNIT단가': int(float(row.get('낱개당 단가', 0))),
+                    'Type': '마트'
+                })
+
+            if temp_rows:
+                df_temp = pd.DataFrame(temp_rows)
+                group_cols = ['출고구분', '수주일자', '납품일자', '발주처코드', '발주처', '배송코드', '배송지', '상품코드', '상품명', 'UNIT단가', 'Type']
+                
+                df_final = df_temp.groupby(group_cols, as_index=False)['낱개수량'].sum()
+                df_final.rename(columns={'낱개수량': 'UNIT수량'}, inplace=True)
+                
+                df_final['금        액'] = df_final['UNIT수량'] * df_final['UNIT단가']
+                df_final['부  가   세'] = (df_final['금        액'] * 0.1).astype(int)
+                
+                df_final = df_final[['출고구분', '수주일자', '납품일자', '발주처코드', '발주처', '배송코드', '배송지', '상품코드', '상품명', 'UNIT수량', 'UNIT단가', '금        액', '부  가   세', 'Type']]
+
+                st.success(f"변환 완료!")
+                st.dataframe(df_final)
+
+                output = io.BytesIO()
+                with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                    df_final.to_excel(writer, index=False, sheet_name='서식업로드')
+                
+                st.download_button(
+                    label="📥 변환 결과 다운로드",
+                    data=output.getvalue(),
+                    file_name=f"Homeplus_Converted_{datetime.now().strftime('%m%d')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+        except Exception as e:
+            st.error(f"오류 발생: {e}")
