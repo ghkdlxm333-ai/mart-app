@@ -3,7 +3,7 @@ import pandas as pd
 import io
 from datetime import datetime
 
-st.set_page_config(page_title="홈플러스 수주 자동화", page_icon="🛒🔵", layout="wide")
+st.set_page_config(page_title="홈플러스 수주 자동화", page_icon="🔵", layout="wide")
 
 @st.cache_data
 def load_master_data(path):
