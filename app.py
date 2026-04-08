@@ -5,13 +5,6 @@ from datetime import datetime
 
 st.set_page_config(page_title="홈플러스 수주 자동화", page_icon="🔵", layout="wide")
 
-if error:
-    st.error(f"마스터 파일 로드 실패: {error}")
-else:
-    # --- 안내 문구 추가 구간 ---
-    st.info("💡 **안내:** 엑셀파일 확장자를 **xlsx로 변환** 후 업로드해주세요.")
-    # -----------------------
-
 @st.cache_data
 def load_master_data(path):
     try:
