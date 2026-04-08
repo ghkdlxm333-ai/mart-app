@@ -48,11 +48,11 @@ if error:
     st.error(f"마스터 파일 로드 실패: {error}")
 else:
     # --- [추가된 안내 문구 섹션] ---
-    st.markdown("### 📢 업로드 전 확인사항")
+    st.markdown("### ※ 업로드 전 확인사항")
     st.info("💡 **엑셀파일 확장자를 .xlsx로 변환 후 업로드해주세요.** (xls, csv 파일은 변환이 필요합니다)")
     # -----------------------------------
 
-    uploaded_file = st.file_uploader("ordview 엑셀 파일을 업로드하세요", type=['xlsx'])
+    uploaded_file = st.file_uploader("본문(헤더분할) 엑셀파일로 첨부해주세요.", type=['xlsx'])
     
     if uploaded_file:
         if not uploaded_file.name.lower().endswith('.xlsx'):
