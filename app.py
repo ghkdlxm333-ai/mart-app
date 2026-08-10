@@ -12,12 +12,9 @@ from PIL import Image
 # ==========================================
 # ⚙️ 페이지 및 기본 설정 (Wide Layout)
 # ==========================================
-except FileNotFoundError:
-    img = "🌿"
-
 st.set_page_config(
     page_title="멘소래담 통합 수주업로드", 
-    page_icon=img, 
+    page_icon="🌿", 
     layout="wide"
 )
 
