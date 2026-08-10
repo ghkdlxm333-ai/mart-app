@@ -107,7 +107,7 @@ def to_excel_unified(df, sheet_name="통합_수주업로드"):
     return output.getvalue()
 
 # =====================================================================
-# 🗃️ [핵심] 통합 마스터 파일 로드 (인코딩/파일명 오차 자동 매칭)
+# 🗃️ [핵심] 통합 마스터 파일 로드 (컬럼 공백 자동 제거 추가)
 # =====================================================================
 def find_master_file():
     target_names = ["마트 통합 마스터 파일.xlsx", "master_file.xlsx", "통합마스터.xlsx"]
@@ -118,7 +118,6 @@ def find_master_file():
             f_norm = unicodedata.normalize('NFC', f)
             if f_norm in target_norms or f in target_names:
                 return f
-            # '마스터' 또는 'master'가 포함된 xlsx 파일 유연 감지
             if ('마스터' in f_norm or 'master' in f_norm.lower()) and f_norm.endswith('.xlsx'):
                 return f
     return None
@@ -134,6 +133,10 @@ def load_unified_master(file_path):
         xls = pd.ExcelFile(file_path)
         store_master = pd.read_excel(xls, sheet_name='통합_점포마스터')
         prod_master = pd.read_excel(xls, sheet_name='통합_상품마스터')
+        
+        # 컬럼명 공백 제거 (strip)
+        store_master.columns = store_master.columns.astype(str).str.strip()
+        prod_master.columns = prod_master.columns.astype(str).str.strip()
         
         # 바코드 클렌징
         if '바코드' in prod_master.columns:
@@ -438,7 +441,7 @@ with tab_emart:
                 st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟢 [TAB 3] 롯데마트 로직
+# 🟢 [TAB 3] 롯데마트 로직 (컬럼 매핑 예외 처리 완료)
 # =====================================================================
 with tab_lotte:
     st.markdown("### 롯데마트 EDI 발주 데이터 업로드")
@@ -499,15 +502,31 @@ with tab_lotte:
                     else:
                         df_parsed = pd.DataFrame(parsed_list)
                         
-                        m_dict = lotte_prod_master[['바코드', '상품코드(기획)', '이마트 상품명', '단가(기획)']].copy() if '단가(기획)' in lotte_prod_master.columns else lotte_prod_master[['바코드', '상품코드(기획)', '이마트 상품명']]
-                        m_dict.columns = ['바코드', 'ME코드', '마스터_품명', '마스터_단가'] if '단가(기획)' in lotte_prod_master.columns else ['바코드', 'ME코드', '마스터_품명']
+                        # 상품명 컬럼 유연하게 찾기 ('이마트 상품명', '상품명(기획)' 등)
+                        name_col = next((c for c in ['이마트 상품명', '상품명(기획)', '상품명'] if c in lotte_prod_master.columns), None)
                         
+                        master_cols = ['바코드', '상품코드(기획)']
+                        if name_col: master_cols.append(name_col)
+                        if '단가(기획)' in lotte_prod_master.columns: master_cols.append('단가(기획)')
+                        
+                        m_dict = lotte_prod_master[master_cols].copy()
+                        
+                        # Rename 지정을 위한 사전 생성
+                        rename_dict = {'상품코드(기획)': 'ME코드'}
+                        if name_col: rename_dict[name_col] = '마스터_품명'
+                        if '단가(기획)' in lotte_prod_master.columns: rename_dict['단가(기획)'] = '마스터_단가'
+                        
+                        m_dict.rename(columns=rename_dict, inplace=True)
                         m_dict['바코드'] = m_dict['바코드'].apply(clean_lotte_code)
                         m_dict = m_dict.drop_duplicates(subset=['바코드'])
 
                         df_final = pd.merge(df_parsed, m_dict, on='바코드', how='left')
                         df_final['ME코드'] = df_final['ME코드'].fillna(df_final['바코드'])
-                        df_final['품명'] = df_final['마스터_품명'].fillna(df_final['EDI_품명'])
+                        
+                        if '마스터_품명' in df_final.columns:
+                            df_final['품명'] = df_final['마스터_품명'].fillna(df_final['EDI_품명'])
+                        else:
+                            df_final['품명'] = df_final['EDI_품명']
                         
                         if '마스터_단가' in df_final.columns:
                             df_final['UNIT단가'] = df_final['마스터_단가'].fillna(df_final['EDI_단가'])
