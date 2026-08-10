@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 # ==========================================
-# 🎨 B2B SaaS 미니멀 & 커스텀 카드 라디오 CSS
+# 🎨 B2B SaaS 미니멀 & 완벽한 카드형 네비게이션 CSS
 # ==========================================
 st.markdown("""
 <style>
@@ -41,40 +41,50 @@ st.markdown("""
         padding-right: 3rem !important;
     }
 
-    /* 사이드바 스타일 수정 (배경을 확실한 흰색으로) */
+    /* 사이드바 스타일 (화사한 화이트 톤) */
     [data-testid="stSidebar"] {
         background-color: #FFFFFF !important;
         border-right: 1px solid #E2E8F0;
         padding-top: 1.5rem;
     }
-    
     [data-testid="stSidebar"] > div:first-child {
         background-color: #FFFFFF !important;
     }
 
-    /* 라디오 버튼을 커다란 카드형 버튼처럼 보이도록 오버라이드 */
+    /* 라디오 버튼을 동그라미 없는 완벽한 대형 카드 버튼으로 변환 */
     [data-testid="stRadio"] [role="radiogroup"] {
-        gap: 12px;
+        gap: 10px;
     }
+    /* 라디오 내부의 기본 동그라미(input) 숨기기 */
+    [data-testid="stRadio"] input[type="radio"] {
+        display: none !important;
+    }
+    /* 라디오 레이블을 카드박스로 디자인 */
     [data-testid="stRadio"] [role="radiogroup"] label {
-        background-color: #F8FAFC;
-        border: 2px solid #E2E8F0;
+        background-color: #FFFFFF;
+        border: 1.5px solid #E2E8F0;
         border-radius: 12px;
         padding: 14px 18px;
         width: 100%;
         transition: all 0.2s ease-in-out;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.01);
+        cursor: pointer;
     }
     [data-testid="stRadio"] [role="radiogroup"] label:hover {
-        background-color: #F1F5F9;
+        background-color: #F8FAFC;
         border-color: #CBD5E1;
     }
     
-    /* 선택된 카드 강조 */
+    /* 선택된 채널 카드 강조 (진하고 세련된 테두리와 배경) */
     [data-testid="stRadio"] [role="radiogroup"] label[data-checked="true"] {
-        background-color: #EFF6FF !important;
-        border-color: #0284C7 !important;
-        box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.1);
+        background-color: #F1F5F9 !important;
+        border: 2px solid #0F172A !important;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    /* 선택된 카드 안의 텍스트 진하게 */
+    [data-testid="stRadio"] [role="radiogroup"] label[data-checked="true"] p {
+        font-weight: 700 !important;
+        color: #0F172A !important;
     }
 
     /* 다운로드 버튼 스타일 */
@@ -107,7 +117,7 @@ st.markdown("""
 today_str = datetime.today().strftime("%Y%m%d")
 
 # ==========================================
-# 📂 사이드바 영역 (로고2 및 박스형 채널 선택)
+# 📂 사이드바 영역 (로고2 및 깔끔한 채널 선택)
 # ==========================================
 with st.sidebar:
     try:
@@ -116,7 +126,7 @@ with st.sidebar:
         st.markdown("### 🌿 MENTHOLATUM")
     
     st.markdown("---")
-    st.markdown("##### 🛒 CHANNELS")
+    st.markdown("##### CHANNELS")
     
     channel_choice = st.radio(
         "채널 선택",
