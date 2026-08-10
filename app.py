@@ -24,7 +24,7 @@ st.set_page_config(
 )
 
 # ==========================================
-# 🎨 B2B SaaS 스타일 + 입체 박스형 탭 커스텀 CSS
+# 🎨 레퍼런스 기반 둥근 모서리 & 여유 있는 탭 스타일 CSS
 # ==========================================
 st.markdown("""
 <style>
@@ -39,19 +39,18 @@ st.markdown("""
     .stApp { background-color: #ffffff; }
     [data-testid="stSidebar"] { background-color: #ffffff; border-right: 1px solid #f1f5f9; }
 
-    /* 🎨 레퍼런스 기반 입체 박스형 탭 스타일 적용 */
+    /* 🎨 레퍼런스 스타일 탭 디자인 (상단 둥근 모서리 & 넉넉한 패딩 & 간격) */
     .stTabs [data-baseweb="tab-list"] { 
-        gap: 6px; 
-        background-color: #eef2f6; 
-        padding: 6px 6px 0px 6px; 
-        border-radius: 12px 12px 0 0;
-        border-bottom: 2px solid #cbd5e1;
+        gap: 12px; 
+        background-color: transparent; 
+        padding: 10px 0px 0px 0px; 
+        border-bottom: 2px solid #e2e8f0;
     }
     .stTabs [data-baseweb="tab"] { 
-        height: 45px;
-        background-color: #e2e8f0; 
-        border-radius: 8px 8px 0 0; 
-        padding: 0px 20px; 
+        height: 48px;
+        background-color: #f1f5f9; 
+        border-radius: 10px 10px 0 0; 
+        padding: 0px 28px; 
         font-weight: 600; 
         color: #64748b; 
         border: 1px solid #cbd5e1;
@@ -60,7 +59,7 @@ st.markdown("""
         transition: all 0.2s ease;
     }
     .stTabs [data-baseweb="tab"]:hover {
-        background-color: #f1f5f9;
+        background-color: #e2e8f0;
         color: #1e293b;
     }
     .stTabs [aria-selected="true"] { 
@@ -68,8 +67,8 @@ st.markdown("""
         border: 1px solid #cbd5e1 !important;
         border-bottom: 2px solid #ffffff !important; 
         font-weight: 700 !important; 
-        color: #0f172a !important; 
-        box-shadow: 0 -2px 6px rgba(0,0,0,0.03);
+        color: #2563eb !important; 
+        box-shadow: 0 -4px 10px rgba(0,0,0,0.04);
         position: relative;
         z-index: 2;
     }
