@@ -125,9 +125,9 @@ with st.sidebar:
     )
     
     st.markdown("<br><br>", unsafe_allow_html=True)
-    with st.container(border=True):
-        st.markdown("📌 **시스템 기준일**")
-        st.code(today_str, language="text")
+# 박스(container) 없이 깔끔하게 출력
+    st.markdown("📌 **시스템 기준일**")
+    st.code(today_str, language="text")
 
 # ==========================================
 # 📝 상단 헤더 영역 (타이틀, 마스터 링크)
