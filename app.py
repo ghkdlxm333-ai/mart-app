@@ -10,16 +10,21 @@ from datetime import datetime
 from PIL import Image
 
 # ==========================================
-# ⚙️ 페이지 및 기본 설정 (Wide Layout)
+# ⚙️ 페이지 및 기본 설정 (Wide Layout & 탭 아이콘)
 # ==========================================
+try:
+    img = Image.open("logo2.png")
+except FileNotFoundError:
+    img = "🌿"
+
 st.set_page_config(
     page_title="멘소래담 통합 수주업로드", 
-    page_icon="🌿", 
+    page_icon=img, 
     layout="wide"
 )
 
 # ==========================================
-# 🎨 B2B SaaS 미니멀 & 완벽한 화이트 톤 카드형 CSS
+# 🎨 B2B SaaS 스타일 커스텀 CSS
 # ==========================================
 st.markdown("""
 <style>
@@ -31,128 +36,56 @@ st.markdown("""
     footer {visibility: hidden !important;}
     .stDeployButton {display: none !important;}
     [data-testid="stHeader"] { background-color: transparent !important; }
-    
-    /* 앱 전체 배경을 깨끗한 화이트 톤으로 설정 */
-    .stApp { background-color: #FFFFFF; }
-    
-    /* 여백 최적화 */
-    .block-container {
-        padding-top: 2.5rem !important;
-        padding-bottom: 2.5rem !important;
-        padding-left: 3rem !important;
-        padding-right: 3rem !important;
-    }
-
-    /* 사이드바 스타일 (화사한 화이트 톤 & 연한 구분선) */
-    [data-testid="stSidebar"] {
-        background-color: #FFFFFF !important;
-        border-right: 1px solid #E2E8F0;
-        padding-top: 1.5rem;
-    }
-    [data-testid="stSidebar"] > div:first-child {
-        background-color: #FFFFFF !important;
-    }
-
-    /* 라디오 버튼을 동그라미 없는 완벽한 대형 카드 버튼으로 변환 */
-    [data-testid="stRadio"] [role="radiogroup"] {
-        gap: 10px;
-    }
-    /* 라디오 내부의 기본 동그라미(input) 숨기기 */
-    [data-testid="stRadio"] input[type="radio"] {
-        display: none !important;
-    }
-    /* 라디오 레이블을 카드박스로 디자인 */
-    [data-testid="stRadio"] [role="radiogroup"] label {
-        background-color: #FFFFFF;
-        border: 1.5px solid #E2E8F0;
-        border-radius: 12px;
-        padding: 14px 18px;
-        width: 100%;
-        transition: all 0.2s ease-in-out;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.01);
-        cursor: pointer;
-    }
-    [data-testid="stRadio"] [role="radiogroup"] label:hover {
-        background-color: #F8FAFC;
-        border-color: #CBD5E1;
-    }
-    
-    /* 선택된 채널 카드 강조 (진하고 세련된 테두리와 배경) */
-    [data-testid="stRadio"] [role="radiogroup"] label[data-checked="true"] {
-        background-color: #F1F5F9 !important;
-        border: 2px solid #0F172A !important;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-    }
-    /* 선택된 카드 안의 텍스트 진하게 */
-    [data-testid="stRadio"] [role="radiogroup"] label[data-checked="true"] p {
-        font-weight: 700 !important;
-        color: #0F172A !important;
-    }
-
-    /* 다운로드 버튼 스타일 */
-    .stDownloadButton button { 
-        width: 100%; 
-        border-radius: 8px; 
-        font-weight: 700; 
-        letter-spacing: 0.5px; 
-        background: #0284C7; 
-        color: white; 
-        border: none; 
-        padding: 12px 0; 
-        transition: all 0.3s ease; 
-    }
-    .stDownloadButton button:hover { 
-        background: #0369A1; 
-        color: white; 
-    }
-    
-    /* 파일 업로더 점선 드롭존 */
-    [data-testid="stFileUploadDropzone"] { 
-        border-radius: 12px; 
-        border: 2px dashed #CBD5E1; 
-        background-color: #FFFFFF; 
-        padding: 25px; 
-    }
+    .stApp { background-color: #ffffff; }
+    [data-testid="stSidebar"] { background-color: #ffffff; border-right: 1px solid #f1f5f9; }
+    .stTabs [data-baseweb="tab-list"] { gap: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 0px; }
+    .stTabs [data-baseweb="tab"] { background-color: transparent; border: none; border-radius: 0; padding: 12px 4px; font-weight: 500; color: #64748b; box-shadow: none; }
+    .stTabs [aria-selected="true"] { background-color: transparent; border: none; border-bottom: 3px solid #3b82f6; font-weight: 700; color: #1e293b; box-shadow: none; }
+    div[data-testid="metric-container"] { background-color: #ffffff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); }
+    .stDownloadButton button { width: 100%; border-radius: 8px; font-weight: 700; letter-spacing: 0.5px; background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color: white; border: none; padding: 12px 0; transition: all 0.3s ease; }
+    .stDownloadButton button:hover { background: linear-gradient(135deg, #4338ca 0%, #2563eb 100%); color: white; }
+    [data-testid="stFileUploadDropzone"] { border-radius: 12px; border: 2px dashed #94a3b8; background-color: #ffffff; padding: 30px; }
 </style>
 """, unsafe_allow_html=True)
 
 today_str = datetime.today().strftime("%Y%m%d")
 
 # ==========================================
-# 📂 사이드바 영역 (로고2 및 깔끔한 채널 선택)
+# 🎨 좌측 사이드바
 # ==========================================
 with st.sidebar:
     try:
-        st.image("logo2.png", use_container_width=True)
+        st.image("logo.png", use_container_width=True)
     except FileNotFoundError:
-        st.markdown("### 🌿 MENTHOLATUM")
-    
-    st.markdown("---")
-    st.markdown("##### CHANNELS")
-    
-    channel_choice = st.radio(
-        "채널 선택",
-        ["Tesco", "이마트 (TRD/노브랜드)", "롯데마트 EDI"],
-        label_visibility="collapsed"
-    )
-    
+        pass
     st.markdown("<br><br>", unsafe_allow_html=True)
-    st.markdown("📌 **시스템 기준일**")
-    st.code(today_str, language="text")
+    st.markdown("---")
+    st.markdown(f"📅 **시스템 기준일:** `{today_str}`")
 
 # ==========================================
-# 📝 상단 헤더 영역 (타이틀, 마스터 링크)
+# 📝 메인 화면 및 상단 레이아웃 (최종 슬림 버전)
 # ==========================================
-col_title, col_btn = st.columns([4.5, 1.8], vertical_alignment="center")
+st.markdown("""
+    <style>
+        .block-container {
+            padding-top: 1.8rem !important;
+            padding-bottom: 2rem !important;
+        }
+        div[data-testid="stColumn"] button {
+            margin-top: 2px;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+col_title, col_btn = st.columns([3.5, 1.5], vertical_alignment="center")
 
 with col_title:
     st.title("통합 마트 수주 자동 변환 대시보드")
-    st.caption("💡 상품코드/점포코드 미등록 등 오류 발생 시 우측 버튼을 통해 마스터 파일을 수정해 주세요.")
+    st.caption("💡 상품코드/점포코드 미등록 등 오류 발생 시 오른쪽 버튼을 통해 마스터 파일을 수정해 주세요.")
 
 with col_btn:
-    st.markdown("<br>", unsafe_allow_html=True)
     st.link_button(
-        label="⚙️ 구글 마스터 시트 수정", 
+        label="🔗 구글 마스터 시트 수정", 
         url="https://docs.google.com/spreadsheets/d/1TO2aT3-6i2CYEqrLFZ4de7X2JBTS-Rsi/edit?usp=sharing&ouid=108576351312508665372&rtpof=true&sd=true",
         use_container_width=True
     )
@@ -197,7 +130,7 @@ def to_excel_unified(df, sheet_name="통합_수주업로드"):
     return output.getvalue()
 
 # =====================================================================
-# 🗃️ 구글 드라이브 통합 마스터 파일 연동
+# 🗃️ 구글 드라이브 통합 마스터 파일 연동 (10초 캐시 & 우회 파라미터 적용)
 # =====================================================================
 GOOGLE_MASTER_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTllJFR5hk6q_5umaX0RZ3Pbz3_OlZozoGJFe6-MJirBUZPxtRfpM_5Bm4XO1YC5A/pub?output=xlsx"
 
@@ -227,10 +160,12 @@ def load_unified_master_from_url(base_url):
 
 store_df, prod_df = load_unified_master_from_url(GOOGLE_MASTER_URL)
 
+tab_tesco, tab_emart, tab_lotte = st.tabs(["Tesco", "이마트 (TRD/노브랜드 포함)", "롯데마트"])
+
 # =====================================================================
-# 🔴 [채널 1] TESCO 로직
+# 🔴 [TAB 1] TESCO 로직
 # =====================================================================
-if channel_choice == "Tesco":
+with tab_tesco:
     st.markdown("### Tesco 발주 데이터 업로드")
     
     FULL_PRODUCT_MAP = {
@@ -283,11 +218,11 @@ if channel_choice == "Tesco":
 
     NORMALIZED_STORE_MAP = {re.sub(r'^\d+', '', k).replace(" ", "").upper(): v for k, v in RAW_STORE_MAP.items()}
 
-    file_tesco = st.file_uploader("📂 Tesco 파일을 업로드하세요 (csv/xlsx)", type=['xlsx', 'xls', 'csv'], key="tesco")
+    file_tesco = st.file_uploader("📂 드래그 앤 드롭으로 파일을 업로드하세요 (csv/xlsx)", type=['xlsx', 'xls', 'csv'], key="tesco")
 
     if file_tesco:
         try:
-            with st.spinner("🔄 Tesco 데이터 변환 중..."):
+            with st.spinner("🔄 Tesco 데이터 통합 변환 중입니다..."):
                 all_rows = []
                 if file_tesco.name.endswith('.csv'):
                     content = file_tesco.getvalue()
@@ -372,19 +307,14 @@ if channel_choice == "Tesco":
                 df_final = df_grouped[FINAL_COLUMNS].copy()
                 
                 st.success("✨ Tesco 데이터 정제 및 병합이 완료되었습니다!")
-                
-                st.markdown("<br>", unsafe_allow_html=True)
-                k1, k2, k3 = st.columns(3, gap="medium")
-                with k1: st.metric("📦 총 처리 건수", f"{len(df_final):,} 건")
-                with k2: st.metric("🔢 총 납품 수량", f"{df_final['수량'].sum():,.0f} 개")
-                with k3: st.metric("💰 총 납품 금액", f"{df_final['Total Amount'].sum():,.0f} 원")
-                st.markdown("<br>", unsafe_allow_html=True)
+                c1, c2, c3 = st.columns(3)
+                c1.metric("📦 총 처리 건수", f"{len(df_final):,} 건")
+                c2.metric("🔢 총 납품 수량", f"{df_final['수량'].sum():,.0f} 개")
+                c3.metric("💰 총 납품 금액", f"{df_final['Total Amount'].sum():,.0f} 원")
 
-                with st.container(border=True):
-                    st.markdown("##### 👀 변환된 상세 데이터 미리보기")
-                    st.dataframe(df_final, use_container_width=True, height=400)
+                with st.expander("👀 변환된 상세 데이터 미리보기", expanded=True):
+                    st.dataframe(df_final, use_container_width=True, height=500)
                 
-                st.markdown("<br>", unsafe_allow_html=True)
                 st.download_button(
                     label="📥 통일 양식 다운로드 (Tesco)", 
                     data=to_excel_unified(df_final), 
@@ -395,9 +325,9 @@ if channel_choice == "Tesco":
             st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟡 [채널 2] 이마트 (이마트 / 트레이더스 / 노브랜드) 로직
+# 🟡 [TAB 2] 이마트 (이마트 / 트레이더스 / 노브랜드) 로직
 # =====================================================================
-elif channel_choice == "이마트 (TRD/노브랜드)":
+with tab_emart:
     st.markdown("### 이마트 (이마트/TRD/노브랜드) 발주 데이터 업로드")
     
     if prod_df is None or store_df is None:
@@ -405,13 +335,14 @@ elif channel_choice == "이마트 (TRD/노브랜드)":
     else:
         emart_prod_df = prod_df[prod_df['채널'].isin(['이마트', '트레이더스', '노브랜드'])].copy()
         
-        file_emart = st.file_uploader("📂 이마트 파일을 업로드하세요 (xlsx/csv)", type=['xlsx', 'xls', 'csv'], key="emart")
+        file_emart = st.file_uploader("📂 드래그 앤 드롭으로 파일을 업로드하세요 (xlsx/csv)", type=['xlsx', 'xls', 'csv'], key="emart")
         
         if file_emart:
             try:
-                with st.spinner("🔄 이마트 데이터 변환 중..."):
+                with st.spinner("🔄 이마트 데이터 통합 변환 중입니다..."):
                     if file_emart.name.endswith('.csv'):
-                        try: raw_df = pd.read_csv(file_emart, encoding='utf-8-sig')
+                        try:
+                            raw_df = pd.read_csv(file_emart, encoding='utf-8-sig')
                         except:
                             file_emart.seek(0)
                             raw_df = pd.read_csv(file_emart, encoding='cp949')
@@ -470,12 +401,19 @@ elif channel_choice == "이마트 (TRD/노브랜드)":
                     merged_df['최종_상품명'] = merged_df['상품명(기획)'].fillna(merged_df.get('상품명', '⚠️미등록 상품'))
 
                     delivery_name_map = {
-                        '81010901': '이마트 백암물류센터', '81010902': '이마트 시화물류센터', '81010903': '이마트 대구물류센터',
-                        '81010905': '이마트 여주물류센터', '81010906': '이마트 광주물류센터',
-                        '81010904': '이마트 노브랜드 여주2물류센터', '81010968': '이마트 노브랜드 여주물류센터',
-                        '81010969': '이마트 노브랜드 시화물류센터', '89011175': '이마트 노브랜드 대구물류(신규)',
-                        '81033036': '이마트 트레이더스 평택물류', '89011174': '이마트 트레이더스 대구물류', 
-                        '81011012': '이마트 트레이더스 여주물류', '81011010': '이마트 트레이더스 시화물류'
+                        '81010901': '이마트 백암물류센터', 
+                        '81010902': '이마트 시화물류센터', 
+                        '81010903': '이마트 대구물류센터',
+                        '81010905': '이마트 여주물류센터', 
+                        '81010906': '이마트 광주물류센터',
+                        '81010904': '이마트 노브랜드 여주2물류센터', 
+                        '81010968': '이마트 노브랜드 여주물류센터',
+                        '81010969': '이마트 노브랜드 시화물류센터', 
+                        '89011175': '이마트 노브랜드 대구물류(신규)',
+                        '81033036': '이마트 트레이더스 평택물류',
+                        '89011174': '이마트 트레이더스 대구물류', 
+                        '81011012': '이마트 트레이더스 여주물류',
+                        '81011010': '이마트 트레이더스 시화물류'
                     }
 
                     merged_df['발주코드'] = '81010000'
@@ -500,19 +438,14 @@ elif channel_choice == "이마트 (TRD/노브랜드)":
                     df_final = df_final.sort_values(by=['발주처', '배송처', '상품명']).reset_index(drop=True)
                     
                     st.success("✨ 이마트 데이터 정제 및 병합이 완료되었습니다!")
-                    
-                    st.markdown("<br>", unsafe_allow_html=True)
-                    k1, k2, k3 = st.columns(3, gap="medium")
-                    with k1: st.metric("📦 총 처리 건수", f"{len(df_final):,} 건")
-                    with k2: st.metric("🔢 총 납품 수량", f"{df_final['수량'].sum():,.0f} 개")
-                    with k3: st.metric("💰 총 납품 금액", f"{df_final['Total Amount'].sum():,.0f} 원")
-                    st.markdown("<br>", unsafe_allow_html=True)
+                    c1, c2, c3 = st.columns(3)
+                    c1.metric("📦 총 처리 건수", f"{len(df_final):,} 건")
+                    c2.metric("🔢 총 납품 수량", f"{df_final['수량'].sum():,.0f} 개")
+                    c3.metric("💰 총 납품 금액", f"{df_final['Total Amount'].sum():,.0f} 원")
 
-                    with st.container(border=True):
-                        st.markdown("##### 👀 변환된 상세 데이터 미리보기")
-                        st.dataframe(df_final, use_container_width=True, height=400)
+                    with st.expander("👀 변환된 상세 데이터 미리보기", expanded=True):
+                        st.dataframe(df_final, use_container_width=True, height=500)
                         
-                    st.markdown("<br>", unsafe_allow_html=True)
                     st.download_button(
                         label="📥 통일 양식 다운로드 (이마트)", 
                         data=to_excel_unified(df_final), 
@@ -523,9 +456,9 @@ elif channel_choice == "이마트 (TRD/노브랜드)":
                 st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟢 [채널 3] 롯데마트 로직
+# 🟢 [TAB 3] 롯데마트 로직
 # =====================================================================
-elif channel_choice == "롯데마트 EDI":
+with tab_lotte:
     st.markdown("### 롯데마트 EDI 발주 데이터 업로드")
     
     if store_df is None or prod_df is None:
@@ -544,11 +477,11 @@ elif channel_choice == "롯데마트 EDI":
             s = re.sub(r'[^0-9]', '', s)
             return int(s) if s else 0
 
-        file_lotte = st.file_uploader("📂 롯데마트 파일을 업로드하세요 (xls/csv)", type=['xlsx', 'csv'], key="lotte")
+        file_lotte = st.file_uploader("📂 드래그 앤 드롭으로 파일을 업로드하세요 (xls/csv)", type=['xlsx', 'csv'], key="lotte")
         
         if file_lotte:
             try:
-                with st.spinner("🔄 롯데마트 데이터 변환 중..."):
+                with st.spinner("🔄 롯데마트 데이터 통합 변환 중입니다..."):
                     if file_lotte.name.endswith('.csv'): df_edi = pd.read_csv(file_lotte, header=None)
                     else: df_edi = pd.read_excel(file_lotte, header=None)
                     df_edi = df_edi.dropna(how='all')
@@ -580,6 +513,7 @@ elif channel_choice == "롯데마트 EDI":
                         st.warning("⚠️ 유효한 롯데마트 발주 내역이 없습니다.")
                     else:
                         df_parsed = pd.DataFrame(parsed_list)
+                        
                         name_col = next((c for c in ['이마트 상품명', '상품명(기획)', '상품명'] if c in lotte_prod_master.columns), None)
                         
                         master_cols = ['바코드', '상품코드(기획)']
@@ -617,11 +551,19 @@ elif channel_choice == "롯데마트 EDI":
 
                         df_final['ME코드'] = df_final['ME코드'].fillna("⚠️미등록(" + df_final['바코드'] + ")")
 
-                        df_final['품명'] = df_final['마스터_품명'].fillna(df_final['EDI_품명']) if '마스터_품명' in df_final.columns else df_final['EDI_품명']
-                        df_final['UNIT단가'] = df_final['마스터_단가'].fillna(df_final['EDI_단가']) if '마스터_단가' in df_final.columns else df_final['EDI_단가']
+                        if '마스터_품명' in df_final.columns:
+                            df_final['품명'] = df_final['마스터_품명'].fillna(df_final['EDI_품명'])
+                        else:
+                            df_final['품명'] = df_final['EDI_품명']
+                        
+                        if '마스터_단가' in df_final.columns:
+                            df_final['UNIT단가'] = df_final['마스터_단가'].fillna(df_final['EDI_단가'])
+                        else:
+                            df_final['UNIT단가'] = df_final['EDI_단가']
 
                         df_grouped = df_final.groupby(['발주번호', '센터', '납품일자', 'ME코드'], as_index=False).agg({'품명': 'first', 'UNIT단가': 'first', 'UNIT수량': 'sum'})
 
+                        # [수정된 부분] 초기 방식의 고정 센터 코드 딕셔너리 매핑 적용
                         CENTER_CODE_MAP = {'오산센터': '81030907', '김해센터': '81030908'}
 
                         df_grouped['배송코드'] = df_grouped['센터'].map(CENTER_CODE_MAP).fillna(df_grouped['발주번호'])
@@ -636,19 +578,14 @@ elif channel_choice == "롯데마트 EDI":
                         df_final = df_grouped[FINAL_COLUMNS].copy()
                         
                         st.success("✨ 롯데마트 데이터 정제 및 병합이 완료되었습니다!")
-                        
-                        st.markdown("<br>", unsafe_allow_html=True)
-                        k1, k2, k3 = st.columns(3, gap="medium")
-                        with k1: st.metric("📦 총 처리 건수", f"{len(df_final):,} 건")
-                        with k2: st.metric("🔢 총 납품 수량", f"{df_final['수량'].sum():,.0f} 개")
-                        with k3: st.metric("💰 총 납품 금액", f"{df_final['Total Amount'].sum():,.0f} 원")
-                        st.markdown("<br>", unsafe_allow_html=True)
+                        c1, c2, c3 = st.columns(3)
+                        c1.metric("📦 총 처리 건수", f"{len(df_final):,} 건")
+                        c2.metric("🔢 총 납품 수량", f"{df_final['수량'].sum():,.0f} 개")
+                        c3.metric("💰 총 납품 금액", f"{df_final['Total Amount'].sum():,.0f} 원")
 
-                        with st.container(border=True):
-                            st.markdown("##### 👀 변환된 상세 데이터 미리보기")
-                            st.dataframe(df_final, use_container_width=True, height=400)
+                        with st.expander("👀 변환된 상세 데이터 미리보기", expanded=True):
+                            st.dataframe(df_final, use_container_width=True, height=500)
                             
-                        st.markdown("<br>", unsafe_allow_html=True)
                         st.download_button(
                             label="📥 통일 양식 다운로드 (롯데마트)", 
                             data=to_excel_unified(df_final), 
