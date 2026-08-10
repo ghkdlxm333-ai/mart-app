@@ -5,6 +5,7 @@ import io
 import os
 import re
 import csv
+import unicodedata
 from datetime import datetime, date
 from PIL import Image
 
@@ -23,7 +24,7 @@ st.set_page_config(
 )
 
 # ==========================================
-# 🎨 B2B SaaS 스타일 커스텀 CSS (스트림릿 느낌 지우기)
+# 🎨 B2B SaaS 스타일 커스텀 CSS
 # ==========================================
 st.markdown("""
 <style>
@@ -106,17 +107,31 @@ def to_excel_unified(df, sheet_name="통합_수주업로드"):
     return output.getvalue()
 
 # =====================================================================
-# 🗃️ [핵심] 통합 마스터 파일 로드
+# 🗃️ [핵심] 통합 마스터 파일 로드 (인코딩/파일명 오차 자동 매칭)
 # =====================================================================
-MASTER_FILE = "마트 통합 마스터 파일.xlsx"
+def find_master_file():
+    target_names = ["마트 통합 마스터 파일.xlsx", "master_file.xlsx", "통합마스터.xlsx"]
+    target_norms = [unicodedata.normalize('NFC', name) for name in target_names]
+    
+    if os.path.exists('.'):
+        for f in os.listdir('.'):
+            f_norm = unicodedata.normalize('NFC', f)
+            if f_norm in target_norms or f in target_names:
+                return f
+            # '마스터' 또는 'master'가 포함된 xlsx 파일 유연 감지
+            if ('마스터' in f_norm or 'master' in f_norm.lower()) and f_norm.endswith('.xlsx'):
+                return f
+    return None
+
+MASTER_FILE = find_master_file()
 
 @st.cache_data
-def load_unified_master():
+def load_unified_master(file_path):
     """통합 마스터 파일에서 점포 및 상품 정보를 로드합니다."""
-    if not os.path.exists(MASTER_FILE):
+    if not file_path or not os.path.exists(file_path):
         return None, None
     try:
-        xls = pd.ExcelFile(MASTER_FILE)
+        xls = pd.ExcelFile(file_path)
         store_master = pd.read_excel(xls, sheet_name='통합_점포마스터')
         prod_master = pd.read_excel(xls, sheet_name='통합_상품마스터')
         
@@ -135,12 +150,12 @@ def load_unified_master():
         st.error(f"마스터 파일 로드 오류: {e}")
         return None, None
 
-store_df, prod_df = load_unified_master()
+store_df, prod_df = load_unified_master(MASTER_FILE)
 
 tab_tesco, tab_emart, tab_lotte = st.tabs(["Tesco", "이마트 (TRD/노브랜드 포함)", "롯데마트"])
 
 # =====================================================================
-# 🔴 [TAB 1] TESCO 로직 (Tesco는 기존 하드코딩 로직 유지 - 마스터에 없으므로)
+# 🔴 [TAB 1] TESCO 로직
 # =====================================================================
 with tab_tesco:
     st.markdown("### Tesco 발주 데이터 업로드")
@@ -302,15 +317,14 @@ with tab_tesco:
             st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟡 [TAB 2] 이마트 (이마트 / 트레이더스 / 노브랜드) 로직 (통합 마스터 적용)
+# 🟡 [TAB 2] 이마트 (이마트 / 트레이더스 / 노브랜드) 로직
 # =====================================================================
 with tab_emart:
     st.markdown("### 이마트 (이마트/TRD/노브랜드) 발주 데이터 업로드")
     
     if prod_df is None or store_df is None:
-        st.warning(f"⚠️ `{MASTER_FILE}` 파일을 동일한 폴더에 위치시켜 주세요.")
+        st.warning("⚠️ 마스터 파일(`마트 통합 마스터 파일.xlsx`)을 감지할 수 없습니다. 저장소 파일 이름을 확인해 주세요.")
     else:
-        # 이마트 계열 상품 필터링
         emart_prod_df = prod_df[prod_df['채널'].isin(['이마트', '트레이더스', '노브랜드'])].copy()
         
         file_emart = st.file_uploader("📂 드래그 앤 드롭으로 파일을 업로드하세요 (xlsx/csv)", type=['xlsx', 'xls', 'csv'], key="emart")
@@ -364,7 +378,6 @@ with tab_emart:
                     raw_df[['Customer', '배송코드']] = raw_df.apply(process_emart, axis=1)
                     raw_df['상품코드'] = raw_df['상품코드'].astype(str).str.replace('.0', '', regex=False).str.strip()
                     
-                    # 통합 마스터와 상품 매핑
                     merged_df = pd.merge(raw_df, emart_prod_df[['바코드', '상품코드(기획)', '상품명(기획)']], left_on='상품코드', right_on='바코드', how='left')
                     merged_df['최종_상품코드'] = merged_df['상품코드(기획)'].fillna(merged_df['상품코드'])
                     merged_df['최종_상품명'] = merged_df['상품명(기획)'].fillna(merged_df.get('상품명', ''))
@@ -425,18 +438,17 @@ with tab_emart:
                 st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟢 [TAB 3] 롯데마트 로직 (통합 마스터 적용)
+# 🟢 [TAB 3] 롯데마트 로직
 # =====================================================================
 with tab_lotte:
     st.markdown("### 롯데마트 EDI 발주 데이터 업로드")
     
     if store_df is None or prod_df is None:
-        st.warning(f"⚠️ `{MASTER_FILE}` 파일을 찾을 수 없습니다.")
+        st.warning("⚠️ 마스터 파일(`마트 통합 마스터 파일.xlsx`)을 감지할 수 없습니다. 저장소 파일 이름을 확인해 주세요.")
     else:
         lotte_prod_master = prod_df[prod_df['채널'] == '롯데마트'].copy()
         lotte_store_master = store_df[store_df['채널'] == '롯데마트'].copy()
         
-        # 롯데마트 센터 코드 매핑 사전 생성
         CENTER_CODE_MAP = dict(zip(lotte_store_master['점포명'].str.strip(), lotte_store_master['배송코드']))
 
         def clean_lotte_code(val):
@@ -467,7 +479,6 @@ with tab_lotte:
                             curr_doc_no = clean_lotte_code(r[1])
                             name = str(r[5]).strip()
                             curr_center = re.sub(r'상온센타|상온센터|센타', '센터', name).replace('센터센터', '센터')
-                            
                             curr_delivery_date = re.sub(r'[^0-9]', '', str(r[7]) if len(r) > 7 else "") 
                             continue
                         
@@ -488,7 +499,6 @@ with tab_lotte:
                     else:
                         df_parsed = pd.DataFrame(parsed_list)
                         
-                        # 통합 상품 마스터 매핑 
                         m_dict = lotte_prod_master[['바코드', '상품코드(기획)', '이마트 상품명', '단가(기획)']].copy() if '단가(기획)' in lotte_prod_master.columns else lotte_prod_master[['바코드', '상품코드(기획)', '이마트 상품명']]
                         m_dict.columns = ['바코드', 'ME코드', '마스터_품명', '마스터_단가'] if '단가(기획)' in lotte_prod_master.columns else ['바코드', 'ME코드', '마스터_품명']
                         
@@ -504,16 +514,13 @@ with tab_lotte:
                         else:
                             df_final['UNIT단가'] = df_final['EDI_단가']
 
-                        # 롯데마트 특정 바코드 수동 맵핑 유지
                         LOTTE_MANUAL_MAP = {'8809020342075': 'ME90621GKK', '8809020342105' : 'ME90621LL5', '8809020345229' : 'ME00421301', '8809020342037' : 'ME90621GMM',
                                            '8809020342044':'ME90621LLL', '8809020342464':'ME00621AB8'}
                         df_final['ME코드'] = df_final['바코드'].astype(str).map(LOTTE_MANUAL_MAP).fillna(df_final['ME코드'])
 
                         df_grouped = df_final.groupby(['발주번호', '센터', '납품일자', 'ME코드'], as_index=False).agg({'품명': 'first', 'UNIT단가': 'first', 'UNIT수량': 'sum'})
                         
-                        # 통합 점포 마스터 배송코드 매핑
                         df_grouped['배송코드'] = df_grouped['센터'].map(CENTER_CODE_MAP).fillna(df_grouped['발주번호'])
-                        
                         df_grouped['발주코드'] = df_grouped['배송코드']
                         df_grouped['Total Amount'] = df_grouped['UNIT수량'] * df_grouped['UNIT단가']
                         df_grouped['구분'] = "0" 
