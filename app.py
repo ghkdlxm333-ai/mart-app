@@ -41,11 +41,15 @@ st.markdown("""
         padding-right: 3rem !important;
     }
 
-    /* 사이드바 스타일 */
+    /* 사이드바 스타일 수정 (배경을 확실한 흰색으로) */
     [data-testid="stSidebar"] {
-        background-color: #FFFFFF;
+        background-color: #FFFFFF !important;
         border-right: 1px solid #E2E8F0;
         padding-top: 1.5rem;
+    }
+    
+    [data-testid="stSidebar"] > div:first-child {
+        background-color: #FFFFFF !important;
     }
 
     /* 라디오 버튼을 커다란 카드형 버튼처럼 보이도록 오버라이드 */
@@ -56,7 +60,7 @@ st.markdown("""
         background-color: #F8FAFC;
         border: 2px solid #E2E8F0;
         border-radius: 12px;
-        padding: 16px 20px;
+        padding: 14px 18px;
         width: 100%;
         transition: all 0.2s ease-in-out;
         box-shadow: 0 1px 3px rgba(0,0,0,0.02);
@@ -65,6 +69,7 @@ st.markdown("""
         background-color: #F1F5F9;
         border-color: #CBD5E1;
     }
+    
     /* 선택된 카드 강조 */
     [data-testid="stRadio"] [role="radiogroup"] label[data-checked="true"] {
         background-color: #EFF6FF !important;
@@ -102,7 +107,7 @@ st.markdown("""
 today_str = datetime.today().strftime("%Y%m%d")
 
 # ==========================================
-# 📂 사이드바 영역 (박스 제거 버전)
+# 📂 사이드바 영역 (로고2 및 박스형 채널 선택)
 # ==========================================
 with st.sidebar:
     try:
@@ -120,8 +125,6 @@ with st.sidebar:
     )
     
     st.markdown("<br><br>", unsafe_allow_html=True)
-    
-    # 박스(container) 없이 깔끔하게 출력
     st.markdown("📌 **시스템 기준일**")
     st.code(today_str, language="text")
 
