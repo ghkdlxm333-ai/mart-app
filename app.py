@@ -23,40 +23,30 @@ st.set_page_config(
 )
 
 # ==========================================
-# 🎨 B2B SaaS 스타일 커스텀 CSS (스트림릿 느낌 지우기)
+# 🎨 B2B SaaS 스타일 커스텀 CSS
 # ==========================================
 st.markdown("""
 <style>
-    /* 폰트 적용 (Pretendard 등 모던 폰트 룩) */
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     html, body, [class*="css"]  {
         font-family: 'Pretendard', sans-serif !important;
     }
-
-    /* 💡 핵심 수정: 우측 상단의 Share, Star, GitHub 등 클라우드 툴바 완벽 숨기기 */
     [data-testid="stHeaderActionElements"] {display: none !important;}
     [data-testid="stToolbar"] {display: none !important;}
     #MainMenu {visibility: hidden !important;}
     footer {visibility: hidden !important;}
     .stDeployButton {display: none !important;}
     
-    /* 💡 헤더 배경은 투명하게 해서 좌측의 사이드바 여는 버튼( > )은 보이게 유지 */
     [data-testid="stHeader"] {
         background-color: transparent !important;
     }
-    
-    /* 전체 배경색과 사이드바 배경색을 완벽한 흰색(#ffffff)으로 통일 */
     .stApp {
         background-color: #ffffff;
     }
-    
-    /* 사이드바 배경색 흰색 통일 및 아주 연한 경계선만 남김 */
     [data-testid="stSidebar"] {
         background-color: #ffffff;
         border-right: 1px solid #f1f5f9;
     }
-    
-    /* 탭 디자인 변경 (하단 밑줄 스타일로 자연스럽게) */
     .stTabs [data-baseweb="tab-list"] {
         gap: 20px;
         border-bottom: 1px solid #e2e8f0;
@@ -74,13 +64,11 @@ st.markdown("""
     .stTabs [aria-selected="true"] {
         background-color: transparent;
         border: none;
-        border-bottom: 3px solid #3b82f6; /* 파란색 밑줄 포인트 */
+        border-bottom: 3px solid #3b82f6;
         font-weight: 700;
         color: #1e293b;
         box-shadow: none;
     }
-    
-    /* 메트릭 카드(통계 요약) 디자인 */
     div[data-testid="metric-container"] {
         background-color: #ffffff;
         border: 1px solid #e2e8f0;
@@ -93,8 +81,6 @@ st.markdown("""
         transform: translateY(-2px);
         box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
     }
-    
-    /* 다운로드 버튼 스타일링 (그라데이션 & 강조) */
     .stDownloadButton button {
         width: 100%;
         border-radius: 8px;
@@ -113,8 +99,6 @@ st.markdown("""
         transform: translateY(-1px);
         color: white;
     }
-    
-    /* 파일 업로더 디자인 개선 */
     [data-testid="stFileUploadDropzone"] {
         border-radius: 12px;
         border: 2px dashed #94a3b8;
@@ -128,11 +112,11 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-# 모든 날짜 형식을 하이픈 없이 YYYYMMDD로 통일
+
 today_str = datetime.today().strftime("%Y%m%d")
 
 # ==========================================
-# 🎨 좌측 사이드바 (Sidebar) - 로고 단독 배치
+# 🎨 좌측 사이드바
 # ==========================================
 with st.sidebar:
     try:
@@ -145,20 +129,18 @@ with st.sidebar:
     st.markdown(f"📅 **시스템 기준일:** `{today_str}`")
 
 # ==========================================
-# 📝 메인 화면 타이틀 (깔끔하게 텍스트만)
+# 📝 메인 화면 타이틀
 # ==========================================
 st.title("통합 마트 수주 자동 변환 대시보드")
 st.markdown("> **Tesco, 이마트 계열(TRD/노브랜드), 롯데마트**의 수주 데이터를 하나의 표준 양식으로 자동 병합·변환합니다.")
 st.markdown("<br>", unsafe_allow_html=True)
 
-# ⭐ 최종 통일 양식 컬럼 리스트 (구분 열 추가)
 FINAL_COLUMNS = [
     '구분', '수주날짜', '납품일자', '발주코드', '발주처', '배송코드', '배송처', 
     'ME코드', '상품명', '수량', '단가', 'Total Amount'
 ]
 
 def to_excel_unified(df, sheet_name="통합_수주업로드"):
-    """데이터프레임을 엑셀 파일(메모리)로 변환하고 숫자 서식을 지정합니다."""
     numeric_cols = ['수량', '단가', 'Total Amount']
     for col in numeric_cols:
         if col in df.columns:
@@ -361,23 +343,24 @@ with tab_tesco:
 with tab_emart:
     st.markdown("### 이마트 (이마트/TRD/노브랜드) 발주 데이터 업로드")
     
-    TEMPLATE_FILES = [
-        "NEW 이마트 서식파일_20260420납품.xlsx",
-        "NEW 이마트 트레이더스(한익스점포확인)_260327납품(평택9여주0대구4).xlsx",
-        "NEW 노브랜드_20260409납품.xlsx"
-    ]
+    # 🔗 추출된 이마트 계열 구글 시트 CSV 주소
+    EMART_SHEETS = {
+        "이마트": "https://docs.google.com/spreadsheets/d/1pRkD7y6YRj5qYtzKodldx1UTY7GDBaiL/export?format=csv",
+        "트레이더스": "https://docs.google.com/spreadsheets/d/1ZGoYmP4SFidNfIRr15ifm23zQJCmCF0e/export?format=csv",
+        "노브랜드": "https://docs.google.com/spreadsheets/d/1ZGKNWmWojGrPYm5EOgbFaI6Y5JE3H5Sy/export?format=csv"
+    }
 
-    @st.cache_data
-    def load_emart_master():
+    @st.cache_data(ttl=600)  # 10분 간격 자동 갱신 캐시
+    def load_emart_master_from_google():
         appended = []
-        for fn in TEMPLATE_FILES:
-            if os.path.exists(fn):
-                xls = pd.ExcelFile(fn)
-                prod_sheets = [s for s in xls.sheet_names if '제품명' in s]
-                if prod_sheets:
-                    d = pd.read_excel(xls, sheet_name=prod_sheets[0])
-                    d.columns = d.columns.str.strip()
-                    appended.append(d)
+        for name, url in EMART_SHEETS.items():
+            try:
+                d = pd.read_csv(url)
+                d.columns = d.columns.str.strip()
+                appended.append(d)
+            except Exception as e:
+                st.warning(f"⚠️ {name} 구글 시트 로드 실패: {e}")
+
         if not appended: return None
         md = pd.concat(appended, ignore_index=True)
         if '바코드' in md.columns:
@@ -385,10 +368,10 @@ with tab_emart:
             md = md.drop_duplicates(subset=['바코드'], keep='first')
         return md
 
-    prod_df = load_emart_master()
+    prod_df = load_emart_master_from_google()
     
     if prod_df is None or prod_df.empty:
-        st.warning("⚠️ 서버에 이마트 마스터 파일(서식파일 3종)이 없습니다. 관리자에게 문의하세요.")
+        st.warning("⚠️ 구글 시트 마스터 파일(이마트/TRD/노브랜드)을 불러올 수 없습니다. 링크 권한을 확인해 주세요.")
     else:
         file_emart = st.file_uploader("📂 드래그 앤 드롭으로 파일을 업로드하세요 (xlsx/csv)", type=['xlsx', 'xls', 'csv'], key="emart")
         
@@ -509,7 +492,11 @@ with tab_emart:
 with tab_lotte:
     st.markdown("### 롯데마트 EDI 발주 데이터 업로드")
     
-    LOTTE_TEMPLATE = '2022 롯데마트 서식파일 260417납품.xlsx'
+    # 🔗 추출된 롯데마트 구글 시트 CSV 주소
+    # 구글 시트에 2개의 시트(매핑용 / 단가용)가 존재하는 경우 대응
+    LOTTE_MAP_URL = "https://docs.google.com/spreadsheets/d/1YhuMrQ3xYrPl19V6VneEwW-hoQxyWfpj/export?format=csv&gid=0"
+    LOTTE_PRICE_URL = "https://docs.google.com/spreadsheets/d/1YhuMrQ3xYrPl19V6VneEwW-hoQxyWfpj/export?format=csv&gid=1"  # 2번째 시트 참조용 (필요시 gid 변경 가능)
+
     CENTER_CODE_MAP = {'오산센터': '81030907', '김해센터': '81030908'}
 
     def clean_lotte_code(val):
@@ -522,6 +509,21 @@ with tab_lotte:
         if s.endswith('.0'): s = s[:-2]
         s = re.sub(r'[^0-9]', '', s)
         return int(s) if s else 0
+
+    @st.cache_data(ttl=600)
+    def load_lotte_master_from_google():
+        try:
+            # 첫 번째 시트 (바코드 매핑표)
+            df_map = pd.read_csv(LOTTE_MAP_URL)
+            # 두 번째 시트 (단가표) - 만약 단일 시트로 통합해두셨다면 아래 라인을 df_map과 같이 동일하게 설정하시면 됩니다.
+            try:
+                df_price = pd.read_csv(LOTTE_PRICE_URL)
+            except:
+                df_price = df_map.copy()
+            return df_map, df_price
+        except Exception as e:
+            st.warning(f"⚠️ 롯데마트 구글 시트 불러오기 오류: {e}")
+            return None, None
 
     file_lotte = st.file_uploader("📂 드래그 앤 드롭으로 파일을 업로드하세요 (xls/csv)", type=['xlsx', 'csv'], key="lotte")
     
@@ -561,10 +563,9 @@ with tab_lotte:
                 else:
                     df_parsed = pd.DataFrame(parsed_list)
                     
-                    if os.path.exists(LOTTE_TEMPLATE):
-                        df_map_sheet = pd.read_excel(LOTTE_TEMPLATE, sheet_name=0)
-                        df_price_sheet = pd.read_excel(LOTTE_TEMPLATE, sheet_name=1)
-                        
+                    df_map_sheet, df_price_sheet = load_lotte_master_from_google()
+                    
+                    if df_map_sheet is not None and not df_map_sheet.empty:
                         m_dict = df_map_sheet[[df_map_sheet.columns[3], df_map_sheet.columns[13]]].copy()
                         m_dict.columns = ['바코드', 'ME코드']
                         m_dict['바코드'] = m_dict['바코드'].apply(clean_lotte_code)
@@ -586,24 +587,24 @@ with tab_lotte:
                         df_final['품명'] = df_final['마스터_품명'].fillna(df_final['EDI_품명'])
                         df_final['UNIT단가'] = df_final['마스터_단가'].fillna(df_final['EDI_단가'])
                     else:
-                        st.warning("⚠️ 롯데마트 서식파일을 찾을 수 없어 원본 EDI 단가/품명으로 산출합니다.")
+                        st.warning("⚠️ 롯데마트 구글 시트를 찾을 수 없어 원본 EDI 단가/품명으로 산출합니다.")
                         df_final = df_parsed.copy()
                         df_final['ME코드'] = df_final['바코드']
                         df_final['품명'] = df_final['EDI_품명']
                         df_final['UNIT단가'] = df_final['EDI_단가']
 
                     # 롯데마트 특정 바코드 수동 맵핑
-                    LOTTE_MANUAL_MAP = {'8809020342075': 'ME90621GKK', '8809020342105' : 'ME90621LL5', '8809020345229' : 'ME00421301', '8809020342037' : 'ME90621GMM',
-                                       '8809020342044':'ME90621LLL', '8809020342464':'ME00621AB8'}
+                    LOTTE_MANUAL_MAP = {
+                        '8809020342075': 'ME90621GKK', '8809020342105': 'ME90621LL5', 
+                        '8809020345229': 'ME00421301', '8809020342037': 'ME90621GMM',
+                        '8809020342044': 'ME90621LLL', '8809020342464': 'ME00621AB8'
+                    }
                     df_final['ME코드'] = df_final['바코드'].astype(str).map(LOTTE_MANUAL_MAP).fillna(df_final['ME코드'])
 
                     # 발주번호, 센터 등 원본을 묶어 수량 합산
                     df_grouped = df_final.groupby(['발주번호', '센터', '납품일자', 'ME코드'], as_index=False).agg({'품명': 'first', 'UNIT단가': 'first', 'UNIT수량': 'sum'})
                     
-                    # 배송코드 설정
                     df_grouped['배송코드'] = df_grouped['센터'].map(CENTER_CODE_MAP).fillna(df_grouped['발주번호'])
-                    
-                    # 발주코드 = 배송코드
                     df_grouped['발주코드'] = df_grouped['배송코드']
                     
                     df_grouped['Total Amount'] = df_grouped['UNIT수량'] * df_grouped['UNIT단가']
@@ -614,9 +615,7 @@ with tab_lotte:
                         '센터': '배송처', '품명': '상품명', 'UNIT수량': '수량', 'UNIT단가': '단가'
                     }, inplace=True)
 
-                    # 배송처 이름으로 발주처 컬럼 통일 적용
                     df_grouped['발주처'] = df_grouped['배송처']
-
                     df_final = df_grouped[FINAL_COLUMNS].copy()
                     
                     st.success("✨ 롯데마트 데이터 정제 및 병합이 완료되었습니다!")
