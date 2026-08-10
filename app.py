@@ -66,7 +66,24 @@ with st.sidebar:
 # 📝 메인 화면 및 엑셀 다운로드 포맷
 # ==========================================
 st.title("통합 마트 수주 자동 변환 대시보드")
-st.markdown("> **Tesco, 이마트 계열(TRD/노브랜드), 롯데마트**의 수주 데이터를 하나의 표준 양식으로 자동 병합·변환합니다.")
+
+# 안내 문구 및 마스터 시트 바로가기 버튼 배치
+col_text, col_btn = st.columns([3, 1])
+
+with col_text:
+    st.markdown("""
+    > **Tesco, 이마트 계열(TRD/노브랜드), 롯데마트**의 수주 데이터를 하나의 표준 양식으로 자동 병합·변환합니다.  
+    > 💡 *상품코드/점포코드 미등록 등 오류 발생 시 아래 버튼을 통해 마스터 파일(구글 시트)을 수정해 주세요.*
+    """)
+
+with col_btn:
+    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
+    st.link_button(
+        label="🔗 구글 마스터 시트 수정하기", 
+        url="https://docs.google.com/spreadsheets/d/1TO2aT3-6i2CYEqrLFZ4de7X2JBTS-Rsi/edit?usp=sharing&ouid=108576351312508665372&rtpof=true&sd=true",
+        use_container_width=True
+    )
+
 st.markdown("<br>", unsafe_allow_html=True)
 
 FINAL_COLUMNS = [
