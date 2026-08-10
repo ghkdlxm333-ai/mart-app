@@ -106,7 +106,7 @@ today_str = datetime.today().strftime("%Y%m%d")
 # ==========================================
 with st.sidebar:
     try:
-        st.image("logo.png", use_container_width=True)
+        st.image("logo2.png", use_container_width=True)
     except FileNotFoundError:
         st.markdown("### 🌿 MENTHOLATUM")
     
