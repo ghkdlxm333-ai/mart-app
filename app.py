@@ -63,25 +63,37 @@ with st.sidebar:
     st.markdown(f"📅 **시스템 기준일:** `{today_str}`")
 
 # ==========================================
-# 📝 메인 화면 및 엑셀 다운로드 포맷
+# 📝 메인 화면 및 상단 레이아웃 (개선 버전)
 # ==========================================
-st.title("통합 마트 수주 자동 변환 대시보드")
+# 1) 상단 여백 축소 스타일 적용
+st.markdown("""
+    <style>
+        .block-container {
+            padding-top: 1.8rem !important;
+            padding-bottom: 2rem !important;
+        }
+        div[data-testid="stColumn"] button {
+            margin-top: 2px;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
-# 안내 문구 및 마스터 시트 바로가기 버튼 배치
-col_text, col_btn = st.columns([3, 1])
-with col_text:
-    st.markdown(""" > 💡 *상품코드/점포코드 미등록 등 오류 발생 시 오른쪽 버튼을 통해 마스터 파일(구글 시트)을 수정해 주세요.*
-    """)
+# 2) 타이틀 및 구글 시트 버튼 한 줄 정렬
+col_title, col_btn = st.columns([3.5, 1.5], vertical_alignment="center")
+
+with col_title:
+    st.title("통합 마트 수주 자동 변환 대시보드")
+    st.caption("Tesco · 이마트(TRD/노브랜드) · 롯데마트 표준 양식 자동 변환")
 
 with col_btn:
-    st.markdown("<div style='margin-top: 10px;'></div>", unsafe_allow_html=True)
     st.link_button(
-        label="🔗 구글 마스터 시트 수정하기", 
+        label="🔗 구글 마스터 시트 수정", 
         url="https://docs.google.com/spreadsheets/d/1TO2aT3-6i2CYEqrLFZ4de7X2JBTS-Rsi/edit?usp=sharing&ouid=108576351312508665372&rtpof=true&sd=true",
         use_container_width=True
     )
 
-st.markdown("<br>", unsafe_allow_html=True)
+# 3) 안내 문구 카드
+st.info("💡 상품코드/점포코드 미등록 등 오류 발생 시 오른쪽 버튼을 통해 마스터 파일을 수정해 주세요.")
 
 FINAL_COLUMNS = [
     '구분', '수주날짜', '납품일자', '발주코드', '발주처', '배송코드', '배송처', 
