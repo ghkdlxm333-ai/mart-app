@@ -220,7 +220,7 @@ store_df, prod_df = load_unified_master_from_url(GOOGLE_MASTER_URL)
 # =====================================================================
 # 🔴 [채널 1] TESCO 로직
 # =====================================================================
-if channel_choice == "🛒 Tesco":
+if channel_choice == "Tesco":
     st.markdown("### Tesco 발주 데이터 업로드")
     
     FULL_PRODUCT_MAP = {
@@ -387,7 +387,7 @@ if channel_choice == "🛒 Tesco":
 # =====================================================================
 # 🟡 [채널 2] 이마트 (이마트 / 트레이더스 / 노브랜드) 로직
 # =====================================================================
-elif channel_choice == "🛒 이마트 (TRD/노브랜드)":
+elif channel_choice == "이마트 (TRD/노브랜드)":
     st.markdown("### 이마트 (이마트/TRD/노브랜드) 발주 데이터 업로드")
     
     if prod_df is None or store_df is None:
@@ -515,7 +515,7 @@ elif channel_choice == "🛒 이마트 (TRD/노브랜드)":
 # =====================================================================
 # 🟢 [채널 3] 롯데마트 로직
 # =====================================================================
-elif channel_choice == "🛒 롯데마트 EDI":
+elif channel_choice == "롯데마트 EDI":
     st.markdown("### 롯데마트 EDI 발주 데이터 업로드")
     
     if store_df is None or prod_df is None:
