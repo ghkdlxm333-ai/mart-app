@@ -65,7 +65,6 @@ with st.sidebar:
 # ==========================================
 # 📝 메인 화면 및 상단 레이아웃 (최종 슬림 버전)
 # ==========================================
-# 1) 상단 여백 축소 스타일
 st.markdown("""
     <style>
         .block-container {
@@ -78,7 +77,6 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 2) 타이틀 및 구글 시트 버튼 한 줄 정렬
 col_title, col_btn = st.columns([3.5, 1.5], vertical_alignment="center")
 
 with col_title:
@@ -99,7 +97,6 @@ FINAL_COLUMNS = [
     'ME코드', '상품명', '수량', '단가', 'Total Amount'
 ]
 
-# 구글 마스터 시트 원본 수정 URL (사용자 이동용)
 GOOGLE_SHEET_EDIT_URL = "https://docs.google.com/spreadsheets/d/1TO2aT3-6i2CYEqrLFZ4de7X2JBTS-Rsi/edit"
 
 def to_excel_unified(df, sheet_name="통합_수주업로드"):
@@ -391,7 +388,6 @@ with tab_emart:
                     
                     merged_df = pd.merge(raw_df, emart_prod_df[['바코드', '상품코드(기획)', '상품명(기획)']], left_on='상품코드', right_on='바코드', how='left')
                     
-                    # ⚠️ 미등록 상품 확인 및 안내 처리
                     unmapped_mask = merged_df['상품코드(기획)'].isna()
                     unmapped_barcodes = merged_df[unmapped_mask]['상품코드'].unique().tolist()
 
@@ -401,7 +397,6 @@ with tab_emart:
                         st.link_button("🔗 구글 마스터 시트 열어서 추가하기", GOOGLE_SHEET_EDIT_URL)
                         st.markdown("---")
 
-                    # 미등록 시 기본 바코드 표시
                     merged_df['최종_상품코드'] = merged_df['상품코드(기획)'].fillna("⚠️미등록(" + merged_df['상품코드'] + ")")
                     merged_df['최종_상품명'] = merged_df['상품명(기획)'].fillna(merged_df.get('상품명', '⚠️미등록 상품'))
 
@@ -470,10 +465,7 @@ with tab_lotte:
         st.warning("⚠️ 구글 마스터 파일을 로드할 수 없습니다. 공유 설정을 확인해 주세요.")
     else:
         lotte_prod_master = prod_df[prod_df['채널'] == '롯데마트'].copy()
-        lotte_store_master = store_df[store_df['채널'] == '롯데마트'].copy()
         
-        CENTER_CODE_MAP = dict(zip(lotte_store_master['점포명'].str.strip(), lotte_store_master['배송코드']))
-
         def clean_lotte_code(val):
             s = str(val).strip()
             if s.endswith('.0'): s = s[:-2]
@@ -540,7 +532,6 @@ with tab_lotte:
 
                         df_final = pd.merge(df_parsed, m_dict, on='바코드', how='left')
 
-                        # 하드코딩 매핑 예외
                         LOTTE_MANUAL_MAP = {
                             '8809020342075': 'ME90621GKK', '8809020342105': 'ME90621LL5', 
                             '8809020345229': 'ME00421301', '8809020342037': 'ME90621GMM',
@@ -549,7 +540,6 @@ with tab_lotte:
                         
                         df_final['ME코드'] = df_final['바코드'].astype(str).map(LOTTE_MANUAL_MAP).fillna(df_final['ME코드'])
 
-                        # ⚠️ 미등록 상품 확인 및 안내 처리
                         unmapped_mask = df_final['ME코드'].isna()
                         unmapped_barcodes = df_final[unmapped_mask]['바코드'].unique().tolist()
 
@@ -573,15 +563,12 @@ with tab_lotte:
 
                         df_grouped = df_final.groupby(['발주번호', '센터', '납품일자', 'ME코드'], as_index=False).agg({'품명': 'first', 'UNIT단가': 'first', 'UNIT수량': 'sum'})
 
-                        # [수정된 부분] 점포 마스터 컬럼명 자동 감지 및 매핑
-                        order_col_name = '발주코드' if '발주코드' in lotte_store_master.columns else ('점포코드' if '점포코드' in lotte_store_master.columns else '배송코드')
-                        delivery_col_name = '배송코드' if '배송코드' in lotte_store_master.columns else order_col_name
+                        # [수정된 부분] 초기 방식의 고정 센터 코드 딕셔너리 매핑 적용
+                        CENTER_CODE_MAP = {'오산센터': '81030907', '김해센터': '81030908'}
 
-                        CENTER_ORDER_CODE_MAP = dict(zip(lotte_store_master['점포명'].str.strip(), lotte_store_master[order_col_name]))
-                        CENTER_DELIVERY_CODE_MAP = dict(zip(lotte_store_master['점포명'].str.strip(), lotte_store_master[delivery_col_name]))
-
-                        df_grouped['발주코드'] = df_grouped['센터'].map(CENTER_ORDER_CODE_MAP).fillna("")
-                        df_grouped['배송코드'] = df_grouped['센터'].map(CENTER_DELIVERY_CODE_MAP).fillna("")
+                        df_grouped['배송코드'] = df_grouped['센터'].map(CENTER_CODE_MAP).fillna(df_grouped['발주번호'])
+                        df_grouped['발주코드'] = df_grouped['배송코드']
+                        
                         df_grouped['Total Amount'] = df_grouped['UNIT수량'] * df_grouped['UNIT단가']
                         df_grouped['구분'] = "0" 
                         df_grouped['수주날짜'] = today_str
