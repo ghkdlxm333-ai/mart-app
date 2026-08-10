@@ -107,7 +107,7 @@ st.markdown("""
 today_str = datetime.today().strftime("%Y%m%d")
 
 # ==========================================
-# 📂 사이드바 영역 (박스형 채널 선택)
+# 📂 사이드바 영역 (박스 제거 버전)
 # ==========================================
 with st.sidebar:
     try:
@@ -120,12 +120,13 @@ with st.sidebar:
     
     channel_choice = st.radio(
         "채널 선택",
-        ["Tesco", "이마트 (TRD/노브랜드)", "롯데마트 EDI"],
+        ["🛒 Tesco", "🛒 이마트 (TRD/노브랜드)", "🛒 롯데마트 EDI"],
         label_visibility="collapsed"
     )
     
     st.markdown("<br><br>", unsafe_allow_html=True)
-# 박스(container) 없이 깔끔하게 출력
+    
+    # 박스(container) 없이 깔끔하게 출력
     st.markdown("📌 **시스템 기준일**")
     st.code(today_str, language="text")
 
