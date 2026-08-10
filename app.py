@@ -12,8 +12,6 @@ from PIL import Image
 # ==========================================
 # ⚙️ 페이지 및 기본 설정 (Wide Layout)
 # ==========================================
-try:
-    img = Image.open("logo2.png")
 except FileNotFoundError:
     img = "🌿"
 
