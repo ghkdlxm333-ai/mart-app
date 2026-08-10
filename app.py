@@ -19,7 +19,7 @@ st.set_page_config(
 )
 
 # ==========================================
-# 🎨 B2B SaaS 미니멀 & 완벽한 카드형 네비게이션 CSS
+# 🎨 B2B SaaS 미니멀 & 완벽한 화이트 톤 카드형 CSS
 # ==========================================
 st.markdown("""
 <style>
@@ -31,7 +31,9 @@ st.markdown("""
     footer {visibility: hidden !important;}
     .stDeployButton {display: none !important;}
     [data-testid="stHeader"] { background-color: transparent !important; }
-    .stApp { background-color: #F8FAFC; }
+    
+    /* 앱 전체 배경을 깨끗한 화이트 톤으로 설정 */
+    .stApp { background-color: #FFFFFF; }
     
     /* 여백 최적화 */
     .block-container {
@@ -41,7 +43,7 @@ st.markdown("""
         padding-right: 3rem !important;
     }
 
-    /* 사이드바 스타일 (화사한 화이트 톤) */
+    /* 사이드바 스타일 (화사한 화이트 톤 & 연한 구분선) */
     [data-testid="stSidebar"] {
         background-color: #FFFFFF !important;
         border-right: 1px solid #E2E8F0;
