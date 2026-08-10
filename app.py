@@ -5,8 +5,8 @@ import io
 import os
 import re
 import csv
-import unicodedata
-from datetime import datetime, date
+import time
+from datetime import datetime
 from PIL import Image
 
 # ==========================================
@@ -41,12 +41,10 @@ st.markdown("""
     .stTabs [data-baseweb="tab-list"] { gap: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 0px; }
     .stTabs [data-baseweb="tab"] { background-color: transparent; border: none; border-radius: 0; padding: 12px 4px; font-weight: 500; color: #64748b; box-shadow: none; }
     .stTabs [aria-selected="true"] { background-color: transparent; border: none; border-bottom: 3px solid #3b82f6; font-weight: 700; color: #1e293b; box-shadow: none; }
-    div[data-testid="metric-container"] { background-color: #ffffff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); transition: transform 0.2s ease, box-shadow 0.2s ease; }
-    div[data-testid="metric-container"]:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
-    .stDownloadButton button { width: 100%; border-radius: 8px; font-weight: 700; letter-spacing: 0.5px; background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color: white; border: none; padding: 12px 0; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.25); transition: all 0.3s ease; }
-    .stDownloadButton button:hover { background: linear-gradient(135deg, #4338ca 0%, #2563eb 100%); box-shadow: 0 6px 8px rgba(59, 130, 246, 0.35); transform: translateY(-1px); color: white; }
-    [data-testid="stFileUploadDropzone"] { border-radius: 12px; border: 2px dashed #94a3b8; background-color: #ffffff; padding: 30px; transition: all 0.2s ease; }
-    [data-testid="stFileUploadDropzone"]:hover { border-color: #3b82f6; background-color: #f8fafc; }
+    div[data-testid="metric-container"] { background-color: #ffffff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); }
+    .stDownloadButton button { width: 100%; border-radius: 8px; font-weight: 700; letter-spacing: 0.5px; background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color: white; border: none; padding: 12px 0; transition: all 0.3s ease; }
+    .stDownloadButton button:hover { background: linear-gradient(135deg, #4338ca 0%, #2563eb 100%); color: white; }
+    [data-testid="stFileUploadDropzone"] { border-radius: 12px; border: 2px dashed #94a3b8; background-color: #ffffff; padding: 30px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -75,6 +73,9 @@ FINAL_COLUMNS = [
     '구분', '수주날짜', '납품일자', '발주코드', '발주처', '배송코드', '배송처', 
     'ME코드', '상품명', '수량', '단가', 'Total Amount'
 ]
+
+# 구글 마스터 시트 원본 수정 URL (사용자 이동용)
+GOOGLE_SHEET_EDIT_URL = "https://docs.google.com/spreadsheets/d/1TO2aT3-6i2CYEqrLFZ4de7X2JBTS-Rsi/edit"
 
 def to_excel_unified(df, sheet_name="통합_수주업로드"):
     numeric_cols = ['수량', '단가', 'Total Amount']
@@ -107,27 +108,24 @@ def to_excel_unified(df, sheet_name="통합_수주업로드"):
     return output.getvalue()
 
 # =====================================================================
-# 🗃️ [핵심] 구글 드라이브 통합 마스터 파일 연동 (웹 게시 URL)
+# 🗃️ 구글 드라이브 통합 마스터 파일 연동 (10초 캐시 & 우회 파라미터 적용)
 # =====================================================================
 GOOGLE_MASTER_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTllJFR5hk6q_5umaX0RZ3Pbz3_OlZozoGJFe6-MJirBUZPxtRfpM_5Bm4XO1YC5A/pub?output=xlsx"
 
-@st.cache_data(ttl=600)  # 10분 간격 캐시 갱신
-def load_unified_master_from_url(url):
-    """구글 드라이브 웹 게시 URL에서 점포 및 상품 마스터를 가져옵니다."""
+@st.cache_data(ttl=10)
+def load_unified_master_from_url(base_url):
     try:
-        xls = pd.ExcelFile(url)
+        bypass_url = f"{base_url}&_t={int(time.time())}"
+        xls = pd.ExcelFile(bypass_url)
         store_master = pd.read_excel(xls, sheet_name='통합_점포마스터')
         prod_master = pd.read_excel(xls, sheet_name='통합_상품마스터')
         
-        # 컬럼명 공백 자동 제거
         store_master.columns = store_master.columns.astype(str).str.strip()
         prod_master.columns = prod_master.columns.astype(str).str.strip()
         
-        # 바코드 클렌징
         if '바코드' in prod_master.columns:
             prod_master['바코드'] = prod_master['바코드'].astype(str).str.replace('.0', '', regex=False).str.strip()
             
-        # 점포코드 클렌징
         if '점포코드' in store_master.columns:
              store_master['점포코드'] = store_master['점포코드'].astype(str).str.replace('.0', '', regex=False).str.strip()
         if '배송코드' in store_master.columns:
@@ -367,8 +365,20 @@ with tab_emart:
                     raw_df['상품코드'] = raw_df['상품코드'].astype(str).str.replace('.0', '', regex=False).str.strip()
                     
                     merged_df = pd.merge(raw_df, emart_prod_df[['바코드', '상품코드(기획)', '상품명(기획)']], left_on='상품코드', right_on='바코드', how='left')
-                    merged_df['최종_상품코드'] = merged_df['상품코드(기획)'].fillna(merged_df['상품코드'])
-                    merged_df['최종_상품명'] = merged_df['상품명(기획)'].fillna(merged_df.get('상품명', ''))
+                    
+                    # ⚠️ 미등록 상품 확인 및 안내 처리
+                    unmapped_mask = merged_df['상품코드(기획)'].isna()
+                    unmapped_barcodes = merged_df[unmapped_mask]['상품코드'].unique().tolist()
+
+                    if unmapped_barcodes:
+                        st.error(f"🚨 **구글 상품마스터에 등록되지 않은 바코드가 {len(unmapped_barcodes)}건 존재합니다!**")
+                        st.warning(f"**미등록 바코드 목록:** `{', '.join(unmapped_barcodes)}`")
+                        st.link_button("🔗 구글 마스터 시트 열어서 추가하기", GOOGLE_SHEET_EDIT_URL)
+                        st.markdown("---")
+
+                    # 미등록 시 기본 바코드 표시
+                    merged_df['최종_상품코드'] = merged_df['상품코드(기획)'].fillna("⚠️미등록(" + merged_df['상품코드'] + ")")
+                    merged_df['최종_상품명'] = merged_df['상품명(기획)'].fillna(merged_df.get('상품명', '⚠️미등록 상품'))
 
                     delivery_name_map = {
                         '81010901': '이마트 백암물류센터', 
@@ -504,8 +514,28 @@ with tab_lotte:
                         m_dict = m_dict.drop_duplicates(subset=['바코드'])
 
                         df_final = pd.merge(df_parsed, m_dict, on='바코드', how='left')
-                        df_final['ME코드'] = df_final['ME코드'].fillna(df_final['바코드'])
+
+                        # 하드코딩 매핑 예외
+                        LOTTE_MANUAL_MAP = {
+                            '8809020342075': 'ME90621GKK', '8809020342105': 'ME90621LL5', 
+                            '8809020345229': 'ME00421301', '8809020342037': 'ME90621GMM',
+                            '8809020342044': 'ME90621LLL', '8809020342464': 'ME00621AB8'
+                        }
                         
+                        df_final['ME코드'] = df_final['바코드'].astype(str).map(LOTTE_MANUAL_MAP).fillna(df_final['ME코드'])
+
+                        # ⚠️ 미등록 상품 확인 및 안내 처리
+                        unmapped_mask = df_final['ME코드'].isna()
+                        unmapped_barcodes = df_final[unmapped_mask]['바코드'].unique().tolist()
+
+                        if unmapped_barcodes:
+                            st.error(f"🚨 **구글 상품마스터에 등록되지 않은 롯데마트 바코드가 {len(unmapped_barcodes)}건 존재합니다!**")
+                            st.warning(f"**미등록 바코드 목록:** `{', '.join(unmapped_barcodes)}`")
+                            st.link_button("🔗 구글 마스터 시트 열어서 추가하기", GOOGLE_SHEET_EDIT_URL)
+                            st.markdown("---")
+
+                        df_final['ME코드'] = df_final['ME코드'].fillna("⚠️미등록(" + df_final['바코드'] + ")")
+
                         if '마스터_품명' in df_final.columns:
                             df_final['품명'] = df_final['마스터_품명'].fillna(df_final['EDI_품명'])
                         else:
@@ -515,10 +545,6 @@ with tab_lotte:
                             df_final['UNIT단가'] = df_final['마스터_단가'].fillna(df_final['EDI_단가'])
                         else:
                             df_final['UNIT단가'] = df_final['EDI_단가']
-
-                        LOTTE_MANUAL_MAP = {'8809020342075': 'ME90621GKK', '8809020342105' : 'ME90621LL5', '8809020345229' : 'ME00421301', '8809020342037' : 'ME90621GMM',
-                                           '8809020342044':'ME90621LLL', '8809020342464':'ME00621AB8'}
-                        df_final['ME코드'] = df_final['바코드'].astype(str).map(LOTTE_MANUAL_MAP).fillna(df_final['ME코드'])
 
                         df_grouped = df_final.groupby(['발주번호', '센터', '납품일자', 'ME코드'], as_index=False).agg({'품명': 'first', 'UNIT단가': 'first', 'UNIT수량': 'sum'})
                         
