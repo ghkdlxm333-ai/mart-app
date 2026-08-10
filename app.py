@@ -63,9 +63,9 @@ with st.sidebar:
     st.markdown(f"📅 **시스템 기준일:** `{today_str}`")
 
 # ==========================================
-# 📝 메인 화면 및 상단 레이아웃 (개선 버전)
+# 📝 메인 화면 및 상단 레이아웃 (최종 슬림 버전)
 # ==========================================
-# 1) 상단 여백 축소 스타일 적용
+# 1) 상단 여백 축소 스타일
 st.markdown("""
     <style>
         .block-container {
@@ -83,7 +83,7 @@ col_title, col_btn = st.columns([3.5, 1.5], vertical_alignment="center")
 
 with col_title:
     st.title("통합 마트 수주 자동 변환 대시보드")
-    st.caption("Tesco · 이마트(TRD/노브랜드) · 롯데마트 표준 양식 자동 변환")
+    st.caption("💡 상품코드/점포코드 미등록 등 오류 발생 시 오른쪽 버튼을 통해 마스터 파일을 수정해 주세요.")
 
 with col_btn:
     st.link_button(
@@ -92,8 +92,7 @@ with col_btn:
         use_container_width=True
     )
 
-# 3) 안내 문구 카드
-st.info("💡 상품코드/점포코드 미등록 등 오류 발생 시 오른쪽 버튼을 통해 마스터 파일을 수정해 주세요.")
+st.markdown("<br>", unsafe_allow_html=True)
 
 FINAL_COLUMNS = [
     '구분', '수주날짜', '납품일자', '발주코드', '발주처', '배송코드', '배송처', 
