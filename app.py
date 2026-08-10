@@ -107,34 +107,19 @@ def to_excel_unified(df, sheet_name="통합_수주업로드"):
     return output.getvalue()
 
 # =====================================================================
-# 🗃️ [핵심] 통합 마스터 파일 로드 (컬럼 공백 자동 제거 추가)
+# 🗃️ [핵심] 구글 드라이브 통합 마스터 파일 연동 (웹 게시 URL)
 # =====================================================================
-def find_master_file():
-    target_names = ["마트 통합 마스터 파일.xlsx", "master_file.xlsx", "통합마스터.xlsx"]
-    target_norms = [unicodedata.normalize('NFC', name) for name in target_names]
-    
-    if os.path.exists('.'):
-        for f in os.listdir('.'):
-            f_norm = unicodedata.normalize('NFC', f)
-            if f_norm in target_norms or f in target_names:
-                return f
-            if ('마스터' in f_norm or 'master' in f_norm.lower()) and f_norm.endswith('.xlsx'):
-                return f
-    return None
+GOOGLE_MASTER_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTllJFR5hk6q_5umaX0RZ3Pbz3_OlZozoGJFe6-MJirBUZPxtRfpM_5Bm4XO1YC5A/pub?output=xlsx"
 
-MASTER_FILE = find_master_file()
-
-@st.cache_data
-def load_unified_master(file_path):
-    """통합 마스터 파일에서 점포 및 상품 정보를 로드합니다."""
-    if not file_path or not os.path.exists(file_path):
-        return None, None
+@st.cache_data(ttl=600)  # 10분 간격 캐시 갱신
+def load_unified_master_from_url(url):
+    """구글 드라이브 웹 게시 URL에서 점포 및 상품 마스터를 가져옵니다."""
     try:
-        xls = pd.ExcelFile(file_path)
+        xls = pd.ExcelFile(url)
         store_master = pd.read_excel(xls, sheet_name='통합_점포마스터')
         prod_master = pd.read_excel(xls, sheet_name='통합_상품마스터')
         
-        # 컬럼명 공백 제거 (strip)
+        # 컬럼명 공백 자동 제거
         store_master.columns = store_master.columns.astype(str).str.strip()
         prod_master.columns = prod_master.columns.astype(str).str.strip()
         
@@ -150,10 +135,10 @@ def load_unified_master(file_path):
             
         return store_master, prod_master
     except Exception as e:
-        st.error(f"마스터 파일 로드 오류: {e}")
+        st.error(f"구글 마스터 파일 로드 실패: {e}")
         return None, None
 
-store_df, prod_df = load_unified_master(MASTER_FILE)
+store_df, prod_df = load_unified_master_from_url(GOOGLE_MASTER_URL)
 
 tab_tesco, tab_emart, tab_lotte = st.tabs(["Tesco", "이마트 (TRD/노브랜드 포함)", "롯데마트"])
 
@@ -326,7 +311,7 @@ with tab_emart:
     st.markdown("### 이마트 (이마트/TRD/노브랜드) 발주 데이터 업로드")
     
     if prod_df is None or store_df is None:
-        st.warning("⚠️ 마스터 파일(`마트 통합 마스터 파일.xlsx`)을 감지할 수 없습니다. 저장소 파일 이름을 확인해 주세요.")
+        st.warning("⚠️ 구글 마스터 파일을 로드할 수 없습니다. 공유 설정을 확인해 주세요.")
     else:
         emart_prod_df = prod_df[prod_df['채널'].isin(['이마트', '트레이더스', '노브랜드'])].copy()
         
@@ -441,13 +426,13 @@ with tab_emart:
                 st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟢 [TAB 3] 롯데마트 로직 (컬럼 매핑 예외 처리 완료)
+# 🟢 [TAB 3] 롯데마트 로직
 # =====================================================================
 with tab_lotte:
     st.markdown("### 롯데마트 EDI 발주 데이터 업로드")
     
     if store_df is None or prod_df is None:
-        st.warning("⚠️ 마스터 파일(`마트 통합 마스터 파일.xlsx`)을 감지할 수 없습니다. 저장소 파일 이름을 확인해 주세요.")
+        st.warning("⚠️ 구글 마스터 파일을 로드할 수 없습니다. 공유 설정을 확인해 주세요.")
     else:
         lotte_prod_master = prod_df[prod_df['채널'] == '롯데마트'].copy()
         lotte_store_master = store_df[store_df['채널'] == '롯데마트'].copy()
@@ -502,7 +487,6 @@ with tab_lotte:
                     else:
                         df_parsed = pd.DataFrame(parsed_list)
                         
-                        # 상품명 컬럼 유연하게 찾기 ('이마트 상품명', '상품명(기획)' 등)
                         name_col = next((c for c in ['이마트 상품명', '상품명(기획)', '상품명'] if c in lotte_prod_master.columns), None)
                         
                         master_cols = ['바코드', '상품코드(기획)']
@@ -511,7 +495,6 @@ with tab_lotte:
                         
                         m_dict = lotte_prod_master[master_cols].copy()
                         
-                        # Rename 지정을 위한 사전 생성
                         rename_dict = {'상품코드(기획)': 'ME코드'}
                         if name_col: rename_dict[name_col] = '마스터_품명'
                         if '단가(기획)' in lotte_prod_master.columns: rename_dict['단가(기획)'] = '마스터_단가'
