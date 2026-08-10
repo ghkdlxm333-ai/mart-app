@@ -24,7 +24,7 @@ st.set_page_config(
 )
 
 # ==========================================
-# 🎨 B2B SaaS 미니멀 & 투명 톤 커스텀 CSS
+# 🎨 B2B SaaS 미니멀 & 커스텀 카드 라디오 CSS
 # ==========================================
 st.markdown("""
 <style>
@@ -45,24 +45,36 @@ st.markdown("""
         padding-left: 3rem !important;
         padding-right: 3rem !important;
     }
-    
-    /* 탭 디자인 미니멀화 */
-    .stTabs [data-baseweb="tab-list"] {
+
+    /* 사이드바 스타일 */
+    [data-testid="stSidebar"] {
+        background-color: #FFFFFF;
+        border-right: 1px solid #E2E8F0;
+        padding-top: 1.5rem;
+    }
+
+    /* 라디오 버튼을 커다란 카드형 버튼처럼 보이도록 오버라이드 */
+    [data-testid="stRadio"] [role="radiogroup"] {
         gap: 12px;
-        background-color: transparent;
     }
-    .stTabs [data-baseweb="tab"] {
-        height: 48px;
+    [data-testid="stRadio"] [role="radiogroup"] label {
+        background-color: #F8FAFC;
+        border: 2px solid #E2E8F0;
+        border-radius: 12px;
+        padding: 16px 20px;
+        width: 100%;
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+    }
+    [data-testid="stRadio"] [role="radiogroup"] label:hover {
         background-color: #F1F5F9;
-        border-radius: 8px;
-        padding: 0 24px;
-        font-weight: 600;
-        color: #475569;
-        border: none;
+        border-color: #CBD5E1;
     }
-    .stTabs [aria-selected="true"] {
-        background-color: #0284C7 !important;
-        color: white !important;
+    /* 선택된 카드 강조 */
+    [data-testid="stRadio"] [role="radiogroup"] label[data-checked="true"] {
+        background-color: #EFF6FF !important;
+        border-color: #0284C7 !important;
+        box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.1);
     }
 
     /* 다운로드 버튼 스타일 */
@@ -95,15 +107,32 @@ st.markdown("""
 today_str = datetime.today().strftime("%Y%m%d")
 
 # ==========================================
-# 📝 상단 헤더 영역 (로고, 타이틀, 마스터 링크 일렬 배치)
+# 📂 사이드바 영역 (박스형 채널 선택)
 # ==========================================
-col_logo, col_title, col_btn = st.columns([1, 4.5, 1.8], vertical_alignment="center")
-
-with col_logo:
+with st.sidebar:
     try:
         st.image("logo.png", use_container_width=True)
     except FileNotFoundError:
         st.markdown("### 🌿 MENTHOLATUM")
+    
+    st.markdown("---")
+    st.markdown("##### 🛒 CHANNELS")
+    
+    channel_choice = st.radio(
+        "채널 선택",
+        ["🛒 Tesco", "🛒 이마트 (TRD/노브랜드)", "🛒 롯데마트 EDI"],
+        label_visibility="collapsed"
+    )
+    
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown("📌 **시스템 기준일**")
+        st.code(today_str, language="text")
+
+# ==========================================
+# 📝 상단 헤더 영역 (타이틀, 마스터 링크)
+# ==========================================
+col_title, col_btn = st.columns([4.5, 1.8], vertical_alignment="center")
 
 with col_title:
     st.title("통합 마트 수주 자동 변환 대시보드")
@@ -188,14 +217,9 @@ def load_unified_master_from_url(base_url):
 store_df, prod_df = load_unified_master_from_url(GOOGLE_MASTER_URL)
 
 # =====================================================================
-# 📑 채널별 탭 구조 복원
+# 🔴 [채널 1] TESCO 로직
 # =====================================================================
-tab_tesco, tab_emart, tab_lotte = st.tabs(["🛒 Tesco", "🛒 이마트 (TRD/노브랜드)", "🛒 롯데마트 EDI"])
-
-# =====================================================================
-# 🔴 [TAB 1] TESCO 로직
-# =====================================================================
-with tab_tesco:
+if channel_choice == "🛒 Tesco":
     st.markdown("### Tesco 발주 데이터 업로드")
     
     FULL_PRODUCT_MAP = {
@@ -360,9 +384,9 @@ with tab_tesco:
             st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟡 [TAB 2] 이마트 (이마트 / 트레이더스 / 노브랜드) 로직
+# 🟡 [채널 2] 이마트 (이마트 / 트레이더스 / 노브랜드) 로직
 # =====================================================================
-with tab_emart:
+elif channel_choice == "🛒 이마트 (TRD/노브랜드)":
     st.markdown("### 이마트 (이마트/TRD/노브랜드) 발주 데이터 업로드")
     
     if prod_df is None or store_df is None:
@@ -488,9 +512,9 @@ with tab_emart:
                 st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟢 [TAB 3] 롯데마트 로직
+# 🟢 [채널 3] 롯데마트 로직
 # =====================================================================
-with tab_lotte:
+elif channel_choice == "🛒 롯데마트 EDI":
     st.markdown("### 롯데마트 EDI 발주 데이터 업로드")
     
     if store_df is None or prod_df is None:
