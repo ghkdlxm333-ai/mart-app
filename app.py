@@ -120,7 +120,7 @@ with st.sidebar:
     
     channel_choice = st.radio(
         "채널 선택",
-        ["🛒 Tesco", "🛒 이마트 (TRD/노브랜드)", "🛒 롯데마트 EDI"],
+        ["Tesco", "이마트 (TRD/노브랜드)", "롯데마트 EDI"],
         label_visibility="collapsed"
     )
     
