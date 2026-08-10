@@ -24,7 +24,7 @@ st.set_page_config(
 )
 
 # ==========================================
-# 🎨 B2B SaaS 스타일 커스텀 CSS
+# 🎨 B2B SaaS 스타일 + 입체 박스형 탭 커스텀 CSS
 # ==========================================
 st.markdown("""
 <style>
@@ -38,9 +38,42 @@ st.markdown("""
     [data-testid="stHeader"] { background-color: transparent !important; }
     .stApp { background-color: #ffffff; }
     [data-testid="stSidebar"] { background-color: #ffffff; border-right: 1px solid #f1f5f9; }
-    .stTabs [data-baseweb="tab-list"] { gap: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 0px; }
-    .stTabs [data-baseweb="tab"] { background-color: transparent; border: none; border-radius: 0; padding: 12px 4px; font-weight: 500; color: #64748b; box-shadow: none; }
-    .stTabs [aria-selected="true"] { background-color: transparent; border: none; border-bottom: 3px solid #3b82f6; font-weight: 700; color: #1e293b; box-shadow: none; }
+
+    /* 🎨 레퍼런스 기반 입체 박스형 탭 스타일 적용 */
+    .stTabs [data-baseweb="tab-list"] { 
+        gap: 6px; 
+        background-color: #eef2f6; 
+        padding: 6px 6px 0px 6px; 
+        border-radius: 12px 12px 0 0;
+        border-bottom: 2px solid #cbd5e1;
+    }
+    .stTabs [data-baseweb="tab"] { 
+        height: 45px;
+        background-color: #e2e8f0; 
+        border-radius: 8px 8px 0 0; 
+        padding: 0px 20px; 
+        font-weight: 600; 
+        color: #64748b; 
+        border: 1px solid #cbd5e1;
+        border-bottom: none;
+        box-shadow: none;
+        transition: all 0.2s ease;
+    }
+    .stTabs [data-baseweb="tab"]:hover {
+        background-color: #f1f5f9;
+        color: #1e293b;
+    }
+    .stTabs [aria-selected="true"] { 
+        background-color: #ffffff !important; 
+        border: 1px solid #cbd5e1 !important;
+        border-bottom: 2px solid #ffffff !important; 
+        font-weight: 700 !important; 
+        color: #0f172a !important; 
+        box-shadow: 0 -2px 6px rgba(0,0,0,0.03);
+        position: relative;
+        z-index: 2;
+    }
+
     div[data-testid="metric-container"] { background-color: #ffffff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); }
     .stDownloadButton button { width: 100%; border-radius: 8px; font-weight: 700; letter-spacing: 0.5px; background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color: white; border: none; padding: 12px 0; transition: all 0.3s ease; }
     .stDownloadButton button:hover { background: linear-gradient(135deg, #4338ca 0%, #2563eb 100%); color: white; }
@@ -130,7 +163,7 @@ def to_excel_unified(df, sheet_name="통합_수주업로드"):
     return output.getvalue()
 
 # =====================================================================
-# 🗃️ 구글 드라이브 통합 마스터 파일 연동 (10초 캐시 & 우회 파라미터 적용)
+# 🗃️ 구글 드라이브 통합 마스터 파일 연동
 # =====================================================================
 GOOGLE_MASTER_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTllJFR5hk6q_5umaX0RZ3Pbz3_OlZozoGJFe6-MJirBUZPxtRfpM_5Bm4XO1YC5A/pub?output=xlsx"
 
@@ -563,7 +596,6 @@ with tab_lotte:
 
                         df_grouped = df_final.groupby(['발주번호', '센터', '납품일자', 'ME코드'], as_index=False).agg({'품명': 'first', 'UNIT단가': 'first', 'UNIT수량': 'sum'})
 
-                        # [수정된 부분] 초기 방식의 고정 센터 코드 딕셔너리 매핑 적용
                         CENTER_CODE_MAP = {'오산센터': '81030907', '김해센터': '81030908'}
 
                         df_grouped['배송코드'] = df_grouped['센터'].map(CENTER_CODE_MAP).fillna(df_grouped['발주번호'])
