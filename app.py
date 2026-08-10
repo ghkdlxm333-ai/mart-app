@@ -10,7 +10,7 @@ from datetime import datetime
 from PIL import Image
 
 # ==========================================
-# ⚙️ 페이지 및 기본 설정 (Wide Layout & 탭 아이콘)
+# ⚙️ 페이지 및 기본 설정 (Wide Layout)
 # ==========================================
 try:
     img = Image.open("logo2.png")
@@ -24,7 +24,7 @@ st.set_page_config(
 )
 
 # ==========================================
-# 🎨 B2B SaaS 스타일 커스텀 CSS
+# 🎨 B2B SaaS 미니멀 & 투명 톤 커스텀 CSS (최종 적용)
 # ==========================================
 st.markdown("""
 <style>
@@ -36,56 +36,86 @@ st.markdown("""
     footer {visibility: hidden !important;}
     .stDeployButton {display: none !important;}
     [data-testid="stHeader"] { background-color: transparent !important; }
-    .stApp { background-color: #ffffff; }
-    [data-testid="stSidebar"] { background-color: #ffffff; border-right: 1px solid #f1f5f9; }
-    .stTabs [data-baseweb="tab-list"] { gap: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 0px; }
-    .stTabs [data-baseweb="tab"] { background-color: transparent; border: none; border-radius: 0; padding: 12px 4px; font-weight: 500; color: #64748b; box-shadow: none; }
-    .stTabs [aria-selected="true"] { background-color: transparent; border: none; border-bottom: 3px solid #3b82f6; font-weight: 700; color: #1e293b; box-shadow: none; }
-    div[data-testid="metric-container"] { background-color: #ffffff; border: 1px solid #e2e8f0; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03); }
-    .stDownloadButton button { width: 100%; border-radius: 8px; font-weight: 700; letter-spacing: 0.5px; background: linear-gradient(135deg, #4f46e5 0%, #3b82f6 100%); color: white; border: none; padding: 12px 0; transition: all 0.3s ease; }
-    .stDownloadButton button:hover { background: linear-gradient(135deg, #4338ca 0%, #2563eb 100%); color: white; }
-    [data-testid="stFileUploadDropzone"] { border-radius: 12px; border: 2px dashed #94a3b8; background-color: #ffffff; padding: 30px; }
+    .stApp { background-color: #F8FAFC; }
+    
+    /* 사이드바 스타일링 (연한 뉴트럴 톤) */
+    [data-testid="stSidebar"] { 
+        background-color: #F1F5F9; 
+        border-right: 1px solid #E2E8F0; 
+    }
+    
+    /* 간격 및 여백 최적화 */
+    .block-container {
+        padding-top: 2rem !important;
+        padding-bottom: 2rem !important;
+        padding-left: 2.5rem !important;
+        padding-right: 2.5rem !important;
+    }
+    
+    /* 다운로드 버튼 스타일 */
+    .stDownloadButton button { 
+        width: 100%; 
+        border-radius: 8px; 
+        font-weight: 700; 
+        letter-spacing: 0.5px; 
+        background: #0284C7; 
+        color: white; 
+        border: none; 
+        padding: 12px 0; 
+        transition: all 0.3s ease; 
+    }
+    .stDownloadButton button:hover { 
+        background: #0369A1; 
+        color: white; 
+    }
+    
+    /* 파일 업로더 점선 드롭존 */
+    [data-testid="stFileUploadDropzone"] { 
+        border-radius: 12px; 
+        border: 2px dashed #CBD5E1; 
+        background-color: #FAFAFA; 
+        padding: 25px; 
+    }
 </style>
 """, unsafe_allow_html=True)
 
 today_str = datetime.today().strftime("%Y%m%d")
 
 # ==========================================
-# 🎨 좌측 사이드바
+# 🎨 좌측 사이드바 (채널 선택형 구조)
 # ==========================================
 with st.sidebar:
     try:
         st.image("logo.png", use_container_width=True)
     except FileNotFoundError:
-        pass
+        st.markdown("### 🌿 MENTHOLATUM")
+        
+    st.markdown("---")
+    st.markdown("### 📌 CHANNELS")
+    
+    # 사이드바 라디오를 통한 채널 선택 (직관적인 워크플로우)
+    selected_channel = st.radio(
+        "발주 채널 선택",
+        ["Tesco", "이마트 (TRD/노브랜드)", "롯데마트 EDI"],
+        label_visibility="collapsed"
+    )
+    
     st.markdown("<br><br>", unsafe_allow_html=True)
     st.markdown("---")
     st.markdown(f"📅 **시스템 기준일:** `{today_str}`")
 
 # ==========================================
-# 📝 메인 화면 및 상단 레이아웃 (최종 슬림 버전)
+# 📝 메인 화면 상단 헤더 & 마스터 수정 링크
 # ==========================================
-st.markdown("""
-    <style>
-        .block-container {
-            padding-top: 1.8rem !important;
-            padding-bottom: 2rem !important;
-        }
-        div[data-testid="stColumn"] button {
-            margin-top: 2px;
-        }
-    </style>
-""", unsafe_allow_html=True)
-
 col_title, col_btn = st.columns([3.5, 1.5], vertical_alignment="center")
 
 with col_title:
     st.title("통합 마트 수주 자동 변환 대시보드")
-    st.caption("💡 상품코드/점포코드 미등록 등 오류 발생 시 오른쪽 버튼을 통해 마스터 파일을 수정해 주세요.")
+    st.caption("💡 상품코드/점포코드 미등록 등 오류 발생 시 우측 버튼을 통해 마스터 파일을 수정해 주세요.")
 
 with col_btn:
     st.link_button(
-        label="🔗 구글 마스터 시트 수정", 
+        label="⚙️ 구글 마스터 시트 수정", 
         url="https://docs.google.com/spreadsheets/d/1TO2aT3-6i2CYEqrLFZ4de7X2JBTS-Rsi/edit?usp=sharing&ouid=108576351312508665372&rtpof=true&sd=true",
         use_container_width=True
     )
@@ -130,7 +160,7 @@ def to_excel_unified(df, sheet_name="통합_수주업로드"):
     return output.getvalue()
 
 # =====================================================================
-# 🗃️ 구글 드라이브 통합 마스터 파일 연동 (10초 캐시 & 우회 파라미터 적용)
+# 🗃️ 구글 드라이브 통합 마스터 파일 연동
 # =====================================================================
 GOOGLE_MASTER_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTllJFR5hk6q_5umaX0RZ3Pbz3_OlZozoGJFe6-MJirBUZPxtRfpM_5Bm4XO1YC5A/pub?output=xlsx"
 
@@ -160,13 +190,11 @@ def load_unified_master_from_url(base_url):
 
 store_df, prod_df = load_unified_master_from_url(GOOGLE_MASTER_URL)
 
-tab_tesco, tab_emart, tab_lotte = st.tabs(["Tesco", "이마트 (TRD/노브랜드 포함)", "롯데마트"])
-
 # =====================================================================
-# 🔴 [TAB 1] TESCO 로직
+# 🔴 [ROUTING 1] TESCO 로직
 # =====================================================================
-with tab_tesco:
-    st.markdown("### Tesco 발주 데이터 업로드")
+if selected_channel == "Tesco":
+    st.subheader("🛒 Tesco 발주 데이터 업로드")
     
     FULL_PRODUCT_MAP = {
         8809020342310: 'ME90521CLA', 8809020342211: 'ME90521CLL', 8809020342419: 'ME90521CLS',
@@ -307,14 +335,23 @@ with tab_tesco:
                 df_final = df_grouped[FINAL_COLUMNS].copy()
                 
                 st.success("✨ Tesco 데이터 정제 및 병합이 완료되었습니다!")
-                c1, c2, c3 = st.columns(3)
-                c1.metric("📦 총 처리 건수", f"{len(df_final):,} 건")
-                c2.metric("🔢 총 납품 수량", f"{df_final['수량'].sum():,.0f} 개")
-                c3.metric("💰 총 납품 금액", f"{df_final['Total Amount'].sum():,.0f} 원")
-
-                with st.expander("👀 변환된 상세 데이터 미리보기", expanded=True):
-                    st.dataframe(df_final, use_container_width=True, height=500)
                 
+                # 여백과 격리가 확실한 독립형 KPI 카드 (간격 충분히 띄움)
+                st.markdown("<br>", unsafe_allow_html=True)
+                k1, k2, k3 = st.columns(3, gap="medium")
+                with k1:
+                    st.metric("📦 총 처리 건수", f"{len(df_final):,} 건")
+                with k2:
+                    st.metric("🔢 총 납품 수량", f"{df_final['수량'].sum():,.0f} 개")
+                with k3:
+                    st.metric("💰 총 납품 금액", f"{df_final['Total Amount'].sum():,.0f} 원")
+                st.markdown("<br>", unsafe_allow_html=True)
+
+                with st.container(border=True):
+                    st.markdown("##### 👀 변환된 상세 데이터 미리보기")
+                    st.dataframe(df_final, use_container_width=True, height=400)
+                
+                st.markdown("<br>", unsafe_allow_html=True)
                 st.download_button(
                     label="📥 통일 양식 다운로드 (Tesco)", 
                     data=to_excel_unified(df_final), 
@@ -325,10 +362,10 @@ with tab_tesco:
             st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟡 [TAB 2] 이마트 (이마트 / 트레이더스 / 노브랜드) 로직
+# 🟡 [ROUTING 2] 이마트 (이마트 / 트레이더스 / 노브랜드) 로직
 # =====================================================================
-with tab_emart:
-    st.markdown("### 이마트 (이마트/TRD/노브랜드) 발주 데이터 업로드")
+elif selected_channel == "이마트 (TRD/노브랜드)":
+    st.subheader("🛒 이마트 (이마트/TRD/노브랜드) 발주 데이터 업로드")
     
     if prod_df is None or store_df is None:
         st.warning("⚠️ 구글 마스터 파일을 로드할 수 없습니다. 공유 설정을 확인해 주세요.")
@@ -438,14 +475,22 @@ with tab_emart:
                     df_final = df_final.sort_values(by=['발주처', '배송처', '상품명']).reset_index(drop=True)
                     
                     st.success("✨ 이마트 데이터 정제 및 병합이 완료되었습니다!")
-                    c1, c2, c3 = st.columns(3)
-                    c1.metric("📦 총 처리 건수", f"{len(df_final):,} 건")
-                    c2.metric("🔢 총 납품 수량", f"{df_final['수량'].sum():,.0f} 개")
-                    c3.metric("💰 총 납품 금액", f"{df_final['Total Amount'].sum():,.0f} 원")
+                    
+                    st.markdown("<br>", unsafe_allow_html=True)
+                    k1, k2, k3 = st.columns(3, gap="medium")
+                    with k1:
+                        st.metric("📦 총 처리 건수", f"{len(df_final):,} 건")
+                    with k2:
+                        st.metric("🔢 총 납품 수량", f"{df_final['수량'].sum():,.0f} 개")
+                    with k3:
+                        st.metric("💰 총 납품 금액", f"{df_final['Total Amount'].sum():,.0f} 원")
+                    st.markdown("<br>", unsafe_allow_html=True)
 
-                    with st.expander("👀 변환된 상세 데이터 미리보기", expanded=True):
-                        st.dataframe(df_final, use_container_width=True, height=500)
+                    with st.container(border=True):
+                        st.markdown("##### 👀 변환된 상세 데이터 미리보기")
+                        st.dataframe(df_final, use_container_width=True, height=400)
                         
+                    st.markdown("<br>", unsafe_allow_html=True)
                     st.download_button(
                         label="📥 통일 양식 다운로드 (이마트)", 
                         data=to_excel_unified(df_final), 
@@ -456,10 +501,10 @@ with tab_emart:
                 st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟢 [TAB 3] 롯데마트 로직
+# 🟢 [ROUTING 3] 롯데마트 로직
 # =====================================================================
-with tab_lotte:
-    st.markdown("### 롯데마트 EDI 발주 데이터 업로드")
+elif selected_channel == "롯데마트 EDI":
+    st.subheader("🛒 롯데마트 EDI 발주 데이터 업로드")
     
     if store_df is None or prod_df is None:
         st.warning("⚠️ 구글 마스터 파일을 로드할 수 없습니다. 공유 설정을 확인해 주세요.")
@@ -563,7 +608,6 @@ with tab_lotte:
 
                         df_grouped = df_final.groupby(['발주번호', '센터', '납품일자', 'ME코드'], as_index=False).agg({'품명': 'first', 'UNIT단가': 'first', 'UNIT수량': 'sum'})
 
-                        # [수정된 부분] 초기 방식의 고정 센터 코드 딕셔너리 매핑 적용
                         CENTER_CODE_MAP = {'오산센터': '81030907', '김해센터': '81030908'}
 
                         df_grouped['배송코드'] = df_grouped['센터'].map(CENTER_CODE_MAP).fillna(df_grouped['발주번호'])
@@ -578,14 +622,22 @@ with tab_lotte:
                         df_final = df_grouped[FINAL_COLUMNS].copy()
                         
                         st.success("✨ 롯데마트 데이터 정제 및 병합이 완료되었습니다!")
-                        c1, c2, c3 = st.columns(3)
-                        c1.metric("📦 총 처리 건수", f"{len(df_final):,} 건")
-                        c2.metric("🔢 총 납품 수량", f"{df_final['수량'].sum():,.0f} 개")
-                        c3.metric("💰 총 납품 금액", f"{df_final['Total Amount'].sum():,.0f} 원")
+                        
+                        st.markdown("<br>", unsafe_allow_html=True)
+                        k1, k2, k3 = st.columns(3, gap="medium")
+                        with k1:
+                            st.metric("📦 총 처리 건수", f"{len(df_final):,} 건")
+                        with k2:
+                            st.metric("🔢 총 납품 수량", f"{df_final['수량'].sum():,.0f} 개")
+                        with k3:
+                            st.metric("💰 총 납품 금액", f"{df_final['Total Amount'].sum():,.0f} 원")
+                        st.markdown("<br>", unsafe_allow_html=True)
 
-                        with st.expander("👀 변환된 상세 데이터 미리보기", expanded=True):
-                            st.dataframe(df_final, use_container_width=True, height=500)
+                        with st.container(border=True):
+                            st.markdown("##### 👀 변환된 상세 데이터 미리보기")
+                            st.dataframe(df_final, use_container_width=True, height=400)
                             
+                        st.markdown("<br>", unsafe_allow_html=True)
                         st.download_button(
                             label="📥 통일 양식 다운로드 (롯데마트)", 
                             data=to_excel_unified(df_final), 
