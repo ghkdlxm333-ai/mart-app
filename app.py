@@ -572,13 +572,16 @@ with tab_lotte:
                             df_final['UNIT단가'] = df_final['EDI_단가']
 
                         df_grouped = df_final.groupby(['발주번호', '센터', '납품일자', 'ME코드'], as_index=False).agg({'품명': 'first', 'UNIT단가': 'first', 'UNIT수량': 'sum'})
-                        
-                        # 센터명(오산/김해 등)에 맞춰 마스터 시트의 발주코드/배송코드 매핑 (주문번호가 딸려오지 않도록 처리)
-                        CENTER_ORDER_CODE_MAP = dict(zip(lotte_store_master['점포명'].str.strip(), lotte_store_master['발주코드']))
-                        CENTER_DELIVERY_CODE_MAP = dict(zip(lotte_store_master['점포명'].str.strip(), lotte_store_master['배송코드']))
+
+                        # 센터명(오산/김해 등)에 맞춰 마스터 시트 코드 매핑 (컬럼 존재 여부 안전 장치 적용)
+                        order_col_name = '발주코드' if '발주코드' in lotte_store_master.columns else ('점포코드' if '점포코드' in lotte_store_master.columns else '배송코드')
+                        delivery_col_name = '배송코드' if '배송코드' in lotte_store_master.columns else order_col_name
+
+                        CENTER_ORDER_CODE_MAP = dict(zip(lotte_store_master['점포명'].str.strip(), lotte_store_master[order_col_name]))
+                        CENTER_DELIVERY_CODE_MAP = dict(zip(lotte_store_master['점포명'].str.strip(), lotte_store_master[delivery_col_name]))
 
                         df_grouped['발주코드'] = df_grouped['센터'].map(CENTER_ORDER_CODE_MAP).fillna("")
-                        df_grouped['배송코드'] = df_grouped['센터'].map(CENTER_DELIVERY_CODE_MAP).fillna("")
+                        df_grouped['배송코드'] = df_grouped['센터'].map(CENTER_DELIVERY_CODE_MAP).fillna("")                      
                         df_grouped['Total Amount'] = df_grouped['UNIT수량'] * df_grouped['UNIT단가']
                         df_grouped['구분'] = "0" 
                         df_grouped['수주날짜'] = today_str
