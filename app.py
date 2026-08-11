@@ -468,7 +468,7 @@ with tab_emart:
                 st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟢 [TAB 3] 롯데마트 로직 (.xls 파일 직접 지원 보완)
+# 🟢 [TAB 3] 롯데마트 로직 (.xls / HTML 위장 파일 완벽 대응)
 # =====================================================================
 with tab_lotte:
     st.markdown("### 롯데마트 EDI 발주 데이터 업로드")
@@ -489,31 +489,47 @@ with tab_lotte:
             s = re.sub(r'[^0-9]', '', s)
             return int(s) if s else 0
 
-        # 파일 업로더 확장자에 'xls' 추가
         file_lotte = st.file_uploader("📂 드래그 앤 드롭으로 파일을 업로드하세요 (xls/xlsx/csv)", type=['xlsx', 'xls', 'csv'], key="lotte")
         
         if file_lotte:
             try:
                 with st.spinner("🔄 롯데마트 데이터 통합 변환 중입니다..."):
-                    # 📌 확장자별 안전한 읽기 로직 적용 (.xls, .xlsx, .csv)
+                    df_edi = pd.DataFrame()
+                    file_bytes = file_lotte.getvalue()
+                    
+                    # 1. CSV 파일 처리
                     if file_lotte.name.endswith('.csv'):
-                        df_edi = pd.read_csv(file_lotte, header=None)
+                        try:
+                            df_edi = pd.read_csv(io.BytesIO(file_bytes), encoding='utf-8-sig', header=None)
+                        except:
+                            df_edi = pd.read_csv(io.BytesIO(file_bytes), encoding='cp949', header=None)
+                    
+                    # 2. XLSX 파일 처리
+                    elif file_lotte.name.endswith('.xlsx'):
+                        df_edi = pd.read_excel(io.BytesIO(file_bytes), header=None, engine='openpyxl')
+                    
+                    # 3. XLS 파일 처리 (HTML 위장 파일 또는 실제 바이너리 XLS 완벽 대응)
                     elif file_lotte.name.endswith('.xls'):
                         try:
-                            df_edi = pd.read_excel(file_lotte, header=None, engine='xlrd')
+                            # 먼저 일반 바이너리 엑셀(.xls)로 읽기 시도
+                            df_edi = pd.read_excel(io.BytesIO(file_bytes), header=None, engine='xlrd')
                         except Exception:
-                            # 엑셀 포맷이 아닌 HTML 테이블 형태인 EDI 파일 대응
-                            df_list = pd.read_html(file_lotte)
-                            df_edi = df_list[0] if df_list else pd.DataFrame()
-                    else:  # .xlsx
-                        df_edi = pd.read_excel(file_lotte, header=None, engine='openpyxl')
-                        
+                            try:
+                                # 실패할 경우 HTML 테이블 형태(EDI 다운로드 파일 특성)로 읽기 시도
+                                dfs = pd.read_html(io.BytesIO(file_bytes))
+                                if dfs:
+                                    df_edi = dfs[0]
+                            except Exception:
+                                # 둘 다 실패 시 텍스트/CSV 형태로 강제 파싱 시도
+                                text_data = file_bytes.decode('cp949', errors='ignore')
+                                df_edi = pd.read_csv(io.StringIO(text_data), sep=None, engine='python', header=None)
+
                     df_edi = df_edi.dropna(how='all')
                     
                     parsed_list, curr_center, curr_doc_no, curr_delivery_date = [], "", "", ""
                     
                     for i, row in df_edi.iterrows():
-                        r = [str(x).strip() for x in row.tolist()]
+                        r = [str(x).strip() for x in row.tolist() if pd.notna(x)]
                         if len(r) > 0 and r[0] == 'ORDERS':
                             curr_doc_no = clean_lotte_code(r[1]) if len(r) > 1 else ""
                             name = str(r[5]).strip() if len(r) > 5 else ""
@@ -536,7 +552,7 @@ with tab_lotte:
                                     })
                                 
                     if not parsed_list:
-                        st.warning("⚠️ 유효한 롯데마트 발주 내역이 없습니다.")
+                        st.warning("⚠️ 유효한 롯데마트 발주 내역이 없습니다. 파일 포맷을 확인해 주세요.")
                     else:
                         df_parsed = pd.DataFrame(parsed_list)
                         
