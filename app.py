@@ -490,24 +490,26 @@ with tab_lotte:
                     
                     for i, row in df_edi.iterrows():
                         r = [str(x).strip() for x in row.tolist()]
-                        if r[0] == 'ORDERS':
-                            curr_doc_no = clean_lotte_code(r[1])
-                            name = str(r[5]).strip()
+                        if len(r) > 0 and r[0] == 'ORDERS':
+                            curr_doc_no = clean_lotte_code(r[1]) if len(r) > 1 else ""
+                            name = str(r[5]).strip() if len(r) > 5 else ""
                             curr_center = re.sub(r'상온센타|상온센터|센타', '센터', name).replace('센터센터', '센터')
                             curr_delivery_date = re.sub(r'[^0-9]', '', str(r[7]) if len(r) > 7 else "") 
                             continue
                         
-                        barcode = clean_lotte_code(r[1])
-                        if barcode.startswith('880'):
-                            qty = clean_lotte_number(r[6])
-                            ipsu = clean_lotte_number(r[5]) or 1
-                            u_qty = qty * ipsu
-                            if u_qty > 0:
-                                edi_price = clean_lotte_number(r[7] if len(r) > 7 else 0)
-                                parsed_list.append({
-                                    '발주번호': curr_doc_no, '센터': curr_center, '납품일자': curr_delivery_date,
-                                    '바코드': barcode, 'EDI_품명': r[2], 'UNIT수량': u_qty, 'EDI_단가': edi_price
-                                })
+                        if len(r) > 1:
+                            barcode = clean_lotte_code(r[1])
+                            if barcode.startswith('880'):
+                                qty = clean_lotte_number(r[6]) if len(r) > 6 else 0
+                                ipsu = clean_lotte_number(r[5]) if len(r) > 5 else 1
+                                if ipsu == 0: ipsu = 1
+                                u_qty = qty * ipsu
+                                if u_qty > 0:
+                                    edi_price = clean_lotte_number(r[7] if len(r) > 7 else 0)
+                                    parsed_list.append({
+                                        '발주번호': curr_doc_no, '센터': curr_center, '납품일자': curr_delivery_date,
+                                        '바코드': barcode, 'EDI_품명': r[2] if len(r) > 2 else "", 'UNIT수량': u_qty, 'EDI_단가': edi_price
+                                    })
                                 
                     if not parsed_list:
                         st.warning("⚠️ 유효한 롯데마트 발주 내역이 없습니다.")
@@ -563,7 +565,6 @@ with tab_lotte:
 
                         df_grouped = df_final.groupby(['발주번호', '센터', '납품일자', 'ME코드'], as_index=False).agg({'품명': 'first', 'UNIT단가': 'first', 'UNIT수량': 'sum'})
 
-                        # [수정된 부분] 초기 방식의 고정 센터 코드 딕셔너리 매핑 적용
                         CENTER_CODE_MAP = {'오산센터': '81030907', '김해센터': '81030908'}
 
                         df_grouped['배송코드'] = df_grouped['센터'].map(CENTER_CODE_MAP).fillna(df_grouped['발주번호'])
