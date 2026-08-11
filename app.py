@@ -468,7 +468,7 @@ with tab_emart:
                 st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟢 [TAB 3] 롯데마트 전체 로직 (HTML 소스 파싱 및 태그 정밀 추출)
+# 🟢 [TAB 3] 롯데마트 전체 로직 (HTML 소스 텍스트 정밀 파싱 버전)
 # =====================================================================
 with tab_lotte:
     st.markdown("### 롯데마트 EDI 발주 데이터 업로드")
@@ -508,53 +508,50 @@ with tab_lotte:
                     elif file_lotte.name.endswith('.xlsx'):
                         df_edi = pd.read_excel(io.BytesIO(file_bytes), header=None, engine='openpyxl')
                     
-                    # 3. XLS 파일 처리 (HTML / 백업 파서 완벽 대응)
+                    # 3. XLS 파일 처리 (HTML 웹페이지 소스 완벽 대응)
                     elif file_lotte.name.endswith('.xls'):
                         success_read = False
-                        # 방법 A: HTML 테이블 읽기 시도 (encoding 다양하게 시도)
-                        for enc in ['utf-8', 'cp949', 'euc-kr']:
+                        
+                        # 시도 A: pandas read_html에 올바른 인코딩 지정
+                        for enc in ['cp949', 'euc-kr', 'utf-8']:
                             try:
-                                dfs = pd.read_html(io.BytesIO(file_bytes), flavor='bs4', encoding=enc)
+                                dfs = pd.read_html(io.BytesIO(file_bytes), encoding=enc)
                                 if dfs:
-                                    df_edi = dfs[0]
+                                    # 테이블이 여러 개일 수 있으므로 <tr> 행이 가장 많은 테이블 선택
+                                    df_edi = max(dfs, key=len)
                                     success_read = True
                                     break
-                            except Exception:
-                                try:
-                                    dfs = pd.read_html(io.BytesIO(file_bytes), encoding=enc)
-                                    if dfs:
-                                        df_edi = dfs[0]
-                                        success_read = True
-                                        break
-                                except:
-                                    continue
+                            except:
+                                continue
                         
-                        # 방법 B: 표준 엑셀 엔진 시도
+                        # 시도 B: BeautifulSoup 기반 HTML 테이블 직접 파싱 (가장 확실함)
+                        if not success_read:
+                            try:
+                                from bs4 import BeautifulSoup
+                                html_text = file_bytes.decode('cp949', errors='ignore')
+                                soup = BeautifulSoup(html_text, 'html.parser')
+                                tables = soup.find_all('table')
+                                
+                                row_data = []
+                                target_table = max(tables, key=lambda t: len(t.find_all('tr'))) if tables else None
+                                
+                                if target_table:
+                                    for tr in target_table.find_all('tr'):
+                                        cols = [td.get_text(strip=True) for td in tr.find_all(['td', 'th'])]
+                                        if cols:
+                                            row_data.append(cols)
+                                    if row_data:
+                                        df_edi = pd.DataFrame(row_data)
+                                        success_read = True
+                            except Exception as e:
+                                print(f"BS4 parsing error: {e}")
+
+                        # 시도 C: 기본 엑셀 엔진 및 텍스트 Fallback
                         if not success_read:
                             try:
                                 df_edi = pd.read_excel(io.BytesIO(file_bytes), header=None, engine='xlrd')
-                                success_read = True
                             except:
-                                pass
-                                
-                        # 방법 C: 텍스트/HTML 강제 라인별 파싱
-                        if not success_read:
-                            text_data = file_bytes.decode('cp949', errors='ignore')
-                            # 만약 HTML 태그가 포함된 파일이라면 파이썬 내장 html 뷰나 파싱을 거칠 수 있도록 변환
-                            from html.parser import HTMLParser
-                            class HTMLFilter(HTMLParser):
-                                def __init__(self):
-                                    super().__init__()
-                                    self.text = []
-                                def handle_data(self, data):
-                                    self.text.append(data)
-                            
-                            parser = HTMLFilter()
-                            try:
-                                parser.feed(text_data)
-                                clean_lines = [line.strip() for line in parser.text if line.strip()]
-                                df_edi = pd.DataFrame(clean_lines)
-                            except:
+                                text_data = file_bytes.decode('cp949', errors='ignore')
                                 df_edi = pd.read_csv(io.StringIO(text_data), sep=None, engine='python', header=None, on_bad_lines='skip')
 
                     df_edi = df_edi.dropna(how='all')
@@ -603,7 +600,6 @@ with tab_lotte:
                                 })
                                 
                     if not parsed_list:
-                        # 디버깅을 위해 읽어들인 상위 5줄 구조를 화면에 출력하여 원인 파악 지원
                         st.warning("⚠️ 유효한 롯데마트 발주 내역이 없습니다. 아래 업로드된 파일의 상위 구조를 확인해 주세요.")
                         if not df_edi.empty:
                             with st.expander("🔍 파일 원본 데이터 미리보기 (디버깅용)", expanded=True):
