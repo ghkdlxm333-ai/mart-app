@@ -336,6 +336,10 @@ with tab_emart:
         prod_df['채널_정리'] = prod_df['채널'].astype(str).str.strip()
         emart_prod_df = prod_df[prod_df['채널_정리'].isin(['이마트', '트레이더스', '노브랜드', 'E-mart', 'TRD'])].copy()
         
+        # 🔑 핵심 수정: 마스터 시트 내 중복 바코드 제거로 1:1 매칭 보장 (데이터 뻥튀기 방지)
+        emart_prod_df['바코드'] = emart_prod_df['바코드'].astype(str).str.replace('.0', '', regex=False).str.strip()
+        emart_prod_df = emart_prod_df.drop_duplicates(subset=['바코드']).copy()
+        
         file_emart = st.file_uploader("📂 드래그 앤 드롭으로 파일을 업로드하세요 (xlsx/csv)", type=['xlsx', 'xls', 'csv'], key="emart")
         
         if file_emart:
@@ -396,8 +400,6 @@ with tab_emart:
                         return pd.Series([cust, mapped_code])
 
                     raw_df[['Customer', '배송코드']] = raw_df.apply(process_emart, axis=1)
-                    
-                    emart_prod_df['바코드'] = emart_prod_df['바코드'].astype(str).str.replace('.0', '', regex=False).str.strip()
                     
                     merged_df = pd.merge(raw_df, emart_prod_df[['바코드', '상품코드(기획)', '상품명(기획)']], left_on='상품코드_정리', right_on='바코드', how='left')
                     
