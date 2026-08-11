@@ -468,7 +468,7 @@ with tab_emart:
                 st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟢 [TAB 3] 롯데마트 로직
+# 🟢 [TAB 3] 롯데마트 로직 (.xls 파일 직접 지원 보완)
 # =====================================================================
 with tab_lotte:
     st.markdown("### 롯데마트 EDI 발주 데이터 업로드")
@@ -489,13 +489,25 @@ with tab_lotte:
             s = re.sub(r'[^0-9]', '', s)
             return int(s) if s else 0
 
-        file_lotte = st.file_uploader("📂 드래그 앤 드롭으로 파일을 업로드하세요 (xls/csv)", type=['xlsx', 'csv'], key="lotte")
+        # 파일 업로더 확장자에 'xls' 추가
+        file_lotte = st.file_uploader("📂 드래그 앤 드롭으로 파일을 업로드하세요 (xls/xlsx/csv)", type=['xlsx', 'xls', 'csv'], key="lotte")
         
         if file_lotte:
             try:
                 with st.spinner("🔄 롯데마트 데이터 통합 변환 중입니다..."):
-                    if file_lotte.name.endswith('.csv'): df_edi = pd.read_csv(file_lotte, header=None)
-                    else: df_edi = pd.read_excel(file_lotte, header=None)
+                    # 📌 확장자별 안전한 읽기 로직 적용 (.xls, .xlsx, .csv)
+                    if file_lotte.name.endswith('.csv'):
+                        df_edi = pd.read_csv(file_lotte, header=None)
+                    elif file_lotte.name.endswith('.xls'):
+                        try:
+                            df_edi = pd.read_excel(file_lotte, header=None, engine='xlrd')
+                        except Exception:
+                            # 엑셀 포맷이 아닌 HTML 테이블 형태인 EDI 파일 대응
+                            df_list = pd.read_html(file_lotte)
+                            df_edi = df_list[0] if df_list else pd.DataFrame()
+                    else:  # .xlsx
+                        df_edi = pd.read_excel(file_lotte, header=None, engine='openpyxl')
+                        
                     df_edi = df_edi.dropna(how='all')
                     
                     parsed_list, curr_center, curr_doc_no, curr_delivery_date = [], "", "", ""
