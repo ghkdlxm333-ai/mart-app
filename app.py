@@ -468,7 +468,7 @@ with tab_emart:
                 st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟢 [TAB 3] 롯데마트 전체 로직 (HTML 소스 텍스트 정밀 파싱 버전)
+# 🟢 [TAB 3] 롯데마트 최종 로직 (.xlsx / .csv 전용 최적화)
 # =====================================================================
 with tab_lotte:
     st.markdown("### 롯데마트 EDI 발주 데이터 업로드")
@@ -489,121 +489,50 @@ with tab_lotte:
             s = re.sub(r'[^0-9]', '', s)
             return int(s) if s else 0
 
-        file_lotte = st.file_uploader("📂 드래그 앤 드롭으로 파일을 업로드하세요 (xls/xlsx/csv)", type=['xlsx', 'xls', 'csv'], key="lotte")
+        # 파일 업로더 (.xlsx, .csv 허용)
+        file_lotte = st.file_uploader("📂 드래그 앤 드롭으로 파일을 업로드하세요 (xlsx/csv)", type=['xlsx', 'csv'], key="lotte")
         
         if file_lotte:
             try:
-                with st.spinner("🔄 롯데마트 데이터 통합 변환 중입니다..."):
-                    df_edi = pd.DataFrame()
-                    file_bytes = file_lotte.getvalue()
-                    
-                    # 1. CSV 파일 처리
+                with st.spinner("🔄 롯데마트 데이터 정제 및 병합 중입니다..."):
+                    # 파일 형식에 따라 안전하게 읽기
                     if file_lotte.name.endswith('.csv'):
                         try:
-                            df_edi = pd.read_csv(io.BytesIO(file_bytes), encoding='utf-8-sig', header=None, on_bad_lines='skip')
+                            df_edi = pd.read_csv(file_lotte, encoding='utf-8-sig', header=None)
                         except:
-                            df_edi = pd.read_csv(io.BytesIO(file_bytes), encoding='cp949', header=None, on_bad_lines='skip')
-                    
-                    # 2. XLSX 파일 처리
-                    elif file_lotte.name.endswith('.xlsx'):
-                        df_edi = pd.read_excel(io.BytesIO(file_bytes), header=None, engine='openpyxl')
-                    
-                    # 3. XLS 파일 처리 (HTML 웹페이지 소스 완벽 대응)
-                    elif file_lotte.name.endswith('.xls'):
-                        success_read = False
+                            df_edi = pd.read_csv(file_lotte, encoding='cp949', header=None)
+                    else:
+                        df_edi = pd.read_excel(file_lotte, header=None, engine='openpyxl')
                         
-                        # 시도 A: pandas read_html에 올바른 인코딩 지정
-                        for enc in ['cp949', 'euc-kr', 'utf-8']:
-                            try:
-                                dfs = pd.read_html(io.BytesIO(file_bytes), encoding=enc)
-                                if dfs:
-                                    # 테이블이 여러 개일 수 있으므로 <tr> 행이 가장 많은 테이블 선택
-                                    df_edi = max(dfs, key=len)
-                                    success_read = True
-                                    break
-                            except:
-                                continue
-                        
-                        # 시도 B: BeautifulSoup 기반 HTML 테이블 직접 파싱 (가장 확실함)
-                        if not success_read:
-                            try:
-                                from bs4 import BeautifulSoup
-                                html_text = file_bytes.decode('cp949', errors='ignore')
-                                soup = BeautifulSoup(html_text, 'html.parser')
-                                tables = soup.find_all('table')
-                                
-                                row_data = []
-                                target_table = max(tables, key=lambda t: len(t.find_all('tr'))) if tables else None
-                                
-                                if target_table:
-                                    for tr in target_table.find_all('tr'):
-                                        cols = [td.get_text(strip=True) for td in tr.find_all(['td', 'th'])]
-                                        if cols:
-                                            row_data.append(cols)
-                                    if row_data:
-                                        df_edi = pd.DataFrame(row_data)
-                                        success_read = True
-                            except Exception as e:
-                                print(f"BS4 parsing error: {e}")
-
-                        # 시도 C: 기본 엑셀 엔진 및 텍스트 Fallback
-                        if not success_read:
-                            try:
-                                df_edi = pd.read_excel(io.BytesIO(file_bytes), header=None, engine='xlrd')
-                            except:
-                                text_data = file_bytes.decode('cp949', errors='ignore')
-                                df_edi = pd.read_csv(io.StringIO(text_data), sep=None, engine='python', header=None, on_bad_lines='skip')
-
                     df_edi = df_edi.dropna(how='all')
                     
                     parsed_list, curr_center, curr_doc_no, curr_delivery_date = [], "", "", ""
                     
                     for i, row in df_edi.iterrows():
-                        r = [str(x).strip() for x in row.tolist() if pd.notna(x) and str(x).strip() != '' and str(x).lower() != 'nan']
-                        if not r: continue
-                        
-                        row_text_joined = " ".join(r).upper()
-                        
-                        # 📌 ORDERS 정보 행 감지
-                        if 'ORDERS' in row_text_joined or any('ORDERS' in cell.upper() for cell in r):
+                        r = [str(x).strip() for x in row.tolist()]
+                        if len(r) > 0 and r[0] == 'ORDERS':
                             curr_doc_no = clean_lotte_code(r[1]) if len(r) > 1 else ""
-                            name = str(r[5]).strip() if len(r) > 5 else (r[2] if len(r) > 2 else "")
+                            name = str(r[5]).strip() if len(r) > 5 else ""
                             curr_center = re.sub(r'상온센타|상온센터|센타', '센터', name).replace('센터센터', '센터')
-                            for cell in r:
-                                digits_only = re.sub(r'[^0-9]', '', cell)
-                                if len(digits_only) == 8 and (digits_only.startswith('202') or digits_only.startswith('203')):
-                                    curr_delivery_date = digits_only
-                                    break
+                            curr_delivery_date = re.sub(r'[^0-9]', '', str(r[7]) if len(r) > 7 else "") 
                             continue
                         
-                        # 📌 상품 바코드 행 감지 (880으로 시작하는 12자리 이상 숫자)
-                        target_barcode = ""
-                        for cell in r:
-                            cleaned_cell = clean_lotte_code(cell)
-                            if cleaned_cell.startswith('880') and len(cleaned_cell) >= 12 and cleaned_cell.isdigit():
-                                target_barcode = cleaned_cell
-                                break
-                                
-                        if target_barcode:
-                            barcode = target_barcode
-                            qty = clean_lotte_number(r[6]) if len(r) > 6 else 0
-                            ipsu = clean_lotte_number(r[5]) if len(r) > 5 else 1
-                            if ipsu <= 0: ipsu = 1
-                            u_qty = qty * ipsu
-                            
-                            if u_qty > 0:
-                                edi_price = clean_lotte_number(r[7] if len(r) > 7 else 0)
-                                edi_name = r[2] if len(r) > 2 else ''
-                                parsed_list.append({
-                                    '발주번호': curr_doc_no, '센터': curr_center, '납품일자': curr_delivery_date,
-                                    '바코드': barcode, 'EDI_품명': edi_name, 'UNIT수량': u_qty, 'EDI_단가': edi_price
-                                })
+                        if len(r) > 1:
+                            barcode = clean_lotte_code(r[1])
+                            if barcode.startswith('880'):
+                                qty = clean_lotte_number(r[6]) if len(r) > 6 else 0
+                                ipsu = clean_lotte_number(r[5]) if len(r) > 5 else 1
+                                if ipsu == 0: ipsu = 1
+                                u_qty = qty * ipsu
+                                if u_qty > 0:
+                                    edi_price = clean_lotte_number(r[7] if len(r) > 7 else 0)
+                                    parsed_list.append({
+                                        '발주번호': curr_doc_no, '센터': curr_center, '납품일자': curr_delivery_date,
+                                        '바코드': barcode, 'EDI_품명': r[2] if len(r) > 2 else '', 'UNIT수량': u_qty, 'EDI_단가': edi_price
+                                    })
                                 
                     if not parsed_list:
-                        st.warning("⚠️ 유효한 롯데마트 발주 내역이 없습니다. 아래 업로드된 파일의 상위 구조를 확인해 주세요.")
-                        if not df_edi.empty:
-                            with st.expander("🔍 파일 원본 데이터 미리보기 (디버깅용)", expanded=True):
-                                st.dataframe(df_edi.head(15), use_container_width=True)
+                        st.warning("⚠️ 유효한 롯데마트 발주 내역이 없습니다.")
                     else:
                         df_parsed = pd.DataFrame(parsed_list)
                         
