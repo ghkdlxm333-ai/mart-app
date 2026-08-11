@@ -468,7 +468,7 @@ with tab_emart:
                 st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟢 [TAB 3] 롯데마트 전체 로직 (HTML/XLS 파싱 및 키워드 매칭 유연화)
+# 🟢 [TAB 3] 롯데마트 전체 로직 (HTML 소스 파싱 및 태그 정밀 추출)
 # =====================================================================
 with tab_lotte:
     st.markdown("### 롯데마트 EDI 발주 데이터 업로드")
@@ -508,20 +508,53 @@ with tab_lotte:
                     elif file_lotte.name.endswith('.xlsx'):
                         df_edi = pd.read_excel(io.BytesIO(file_bytes), header=None, engine='openpyxl')
                     
-                    # 3. XLS 파일 처리 (HTML 테이블 위장 파일 및 바이너리 완벽 대응)
+                    # 3. XLS 파일 처리 (HTML / 백업 파서 완벽 대응)
                     elif file_lotte.name.endswith('.xls'):
-                        try:
-                            # 먼저 HTML 테이블 형태 파싱 시도 (롯데마트 EDI .xls의 99% 형식)
-                            dfs = pd.read_html(io.BytesIO(file_bytes))
-                            if dfs:
-                                df_edi = dfs[0]
-                        except Exception:
+                        success_read = False
+                        # 방법 A: HTML 테이블 읽기 시도 (encoding 다양하게 시도)
+                        for enc in ['utf-8', 'cp949', 'euc-kr']:
                             try:
-                                # 실패 시 일반 바이너리 엑셀(.xls) 읽기 시도
-                                df_edi = pd.read_excel(io.BytesIO(file_bytes), header=None, engine='xlrd')
+                                dfs = pd.read_html(io.BytesIO(file_bytes), flavor='bs4', encoding=enc)
+                                if dfs:
+                                    df_edi = dfs[0]
+                                    success_read = True
+                                    break
                             except Exception:
-                                # 최종 텍스트 강제 파싱
-                                text_data = file_bytes.decode('cp949', errors='ignore')
+                                try:
+                                    dfs = pd.read_html(io.BytesIO(file_bytes), encoding=enc)
+                                    if dfs:
+                                        df_edi = dfs[0]
+                                        success_read = True
+                                        break
+                                except:
+                                    continue
+                        
+                        # 방법 B: 표준 엑셀 엔진 시도
+                        if not success_read:
+                            try:
+                                df_edi = pd.read_excel(io.BytesIO(file_bytes), header=None, engine='xlrd')
+                                success_read = True
+                            except:
+                                pass
+                                
+                        # 방법 C: 텍스트/HTML 강제 라인별 파싱
+                        if not success_read:
+                            text_data = file_bytes.decode('cp949', errors='ignore')
+                            # 만약 HTML 태그가 포함된 파일이라면 파이썬 내장 html 뷰나 파싱을 거칠 수 있도록 변환
+                            from html.parser import HTMLParser
+                            class HTMLFilter(HTMLParser):
+                                def __init__(self):
+                                    super().__init__()
+                                    self.text = []
+                                def handle_data(self, data):
+                                    self.text.append(data)
+                            
+                            parser = HTMLFilter()
+                            try:
+                                parser.feed(text_data)
+                                clean_lines = [line.strip() for line in parser.text if line.strip()]
+                                df_edi = pd.DataFrame(clean_lines)
+                            except:
                                 df_edi = pd.read_csv(io.StringIO(text_data), sep=None, engine='python', header=None, on_bad_lines='skip')
 
                     df_edi = df_edi.dropna(how='all')
@@ -529,12 +562,12 @@ with tab_lotte:
                     parsed_list, curr_center, curr_doc_no, curr_delivery_date = [], "", "", ""
                     
                     for i, row in df_edi.iterrows():
-                        r = [str(x).strip() for x in row.tolist() if pd.notna(x) and str(x).strip() != '']
+                        r = [str(x).strip() for x in row.tolist() if pd.notna(x) and str(x).strip() != '' and str(x).lower() != 'nan']
                         if not r: continue
                         
                         row_text_joined = " ".join(r).upper()
                         
-                        # 📌 ORDERS 정보 행 감지 (유연하게 키워드 포함 여부 확인)
+                        # 📌 ORDERS 정보 행 감지
                         if 'ORDERS' in row_text_joined or any('ORDERS' in cell.upper() for cell in r):
                             curr_doc_no = clean_lotte_code(r[1]) if len(r) > 1 else ""
                             name = str(r[5]).strip() if len(r) > 5 else (r[2] if len(r) > 2 else "")
@@ -546,16 +579,15 @@ with tab_lotte:
                                     break
                             continue
                         
-                        # 📌 상품 바코드 행 감지 (880으로 시작하는 바코드가 포함된 행 탐색)
+                        # 📌 상품 바코드 행 감지 (880으로 시작하는 12자리 이상 숫자)
                         target_barcode = ""
                         for cell in r:
                             cleaned_cell = clean_lotte_code(cell)
-                            if cleaned_cell.startswith('880') and len(cleaned_cell) >= 12:
+                            if cleaned_cell.startswith('880') and len(cleaned_cell) >= 12 and cleaned_cell.isdigit():
                                 target_barcode = cleaned_cell
                                 break
                                 
                         if target_barcode:
-                            # 데이터 추출 위치 보정 (인덱스 에러 방지)
                             barcode = target_barcode
                             qty = clean_lotte_number(r[6]) if len(r) > 6 else 0
                             ipsu = clean_lotte_number(r[5]) if len(r) > 5 else 1
@@ -571,7 +603,11 @@ with tab_lotte:
                                 })
                                 
                     if not parsed_list:
-                        st.warning("⚠️ 유효한 롯데마트 발주 내역이 없습니다. 파일 포맷을 확인해 주세요.")
+                        # 디버깅을 위해 읽어들인 상위 5줄 구조를 화면에 출력하여 원인 파악 지원
+                        st.warning("⚠️ 유효한 롯데마트 발주 내역이 없습니다. 아래 업로드된 파일의 상위 구조를 확인해 주세요.")
+                        if not df_edi.empty:
+                            with st.expander("🔍 파일 원본 데이터 미리보기 (디버깅용)", expanded=True):
+                                st.dataframe(df_edi.head(15), use_container_width=True)
                     else:
                         df_parsed = pd.DataFrame(parsed_list)
                         
