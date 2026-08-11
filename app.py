@@ -63,7 +63,7 @@ with st.sidebar:
     st.markdown(f"📅 **시스템 기준일:** `{today_str}`")
 
 # ==========================================
-# 📝 메인 화면 및 상단 레이아웃 (최종 슬림 버전)
+# 📝 메인 화면 및 상단 레이아웃
 # ==========================================
 st.markdown("""
     <style>
@@ -130,7 +130,7 @@ def to_excel_unified(df, sheet_name="통합_수주업로드"):
     return output.getvalue()
 
 # =====================================================================
-# 🗃️ 구글 드라이브 통합 마스터 파일 연동 (10초 캐시 & 우회 파라미터 적용)
+# 🗃️ 구글 드라이브 통합 마스터 파일 연동
 # =====================================================================
 GOOGLE_MASTER_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTllJFR5hk6q_5umaX0RZ3Pbz3_OlZozoGJFe6-MJirBUZPxtRfpM_5Bm4XO1YC5A/pub?output=xlsx"
 
@@ -325,7 +325,7 @@ with tab_tesco:
             st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟡 [TAB 2] 이마트 (이마트 / 트레이더스 / 노브랜드) 로직
+# 🟡 [TAB 2] 이마트 (이마트 / 트레이더스 / 노브랜드) 로직 (수정본 반영)
 # =====================================================================
 with tab_emart:
     st.markdown("### 이마트 (이마트/TRD/노브랜드) 발주 데이터 업로드")
@@ -333,7 +333,8 @@ with tab_emart:
     if prod_df is None or store_df is None:
         st.warning("⚠️ 구글 마스터 파일을 로드할 수 없습니다. 공유 설정을 확인해 주세요.")
     else:
-        emart_prod_df = prod_df[prod_df['채널'].isin(['이마트', '트레이더스', '노브랜드'])].copy()
+        prod_df['채널_정리'] = prod_df['채널'].astype(str).str.strip()
+        emart_prod_df = prod_df[prod_df['채널_정리'].isin(['이마트', '트레이더스', '노브랜드', 'E-mart', 'TRD'])].copy()
         
         file_emart = st.file_uploader("📂 드래그 앤 드롭으로 파일을 업로드하세요 (xlsx/csv)", type=['xlsx', 'xls', 'csv'], key="emart")
         
@@ -351,20 +352,31 @@ with tab_emart:
                         t_sheet = xls_raw.sheet_names[0]
                         for s in xls_raw.sheet_names:
                             temp = pd.read_excel(xls_raw, sheet_name=s, nrows=3)
-                            if '점포코드' in temp.columns:
+                            if any(col in temp.columns for col in ['점포코드', '센터코드']):
                                 t_sheet = s
                                 break
                         raw_df = pd.read_excel(xls_raw, sheet_name=t_sheet)
 
-                    raw_df = raw_df.dropna(subset=['점포코드'])
-                    raw_df['점포코드'] = pd.to_numeric(raw_df['점포코드'], errors='coerce').fillna(0).astype(int)
+                    raw_df.columns = raw_df.columns.astype(str).str.strip()
+                    
+                    store_col = next((c for c in ['점포코드', '점포', '매장코드'] if c in raw_df.columns), '점포코드')
+                    raw_df = raw_df.dropna(subset=[store_col])
+                    raw_df['점포코드'] = pd.to_numeric(raw_df[store_col], errors='coerce').fillna(0).astype(int)
+                    
                     raw_df['센터코드'] = raw_df.get('센터코드', '').astype(str).str.replace('.0', '', regex=False).str.strip()
                     raw_df['수량'] = pd.to_numeric(raw_df.get('수량', 0), errors='coerce').fillna(0)
                     
-                    date_col = '센터입하일자' if '센터입하일자' in raw_df.columns else ('센터입하일' if '센터입하일' in raw_df.columns else '점입점일자')
+                    date_col = next((c for c in ['센터입하일자', '센터입하일', '점입점일자', '납품일자'] if c in raw_df.columns), None)
                     raw_df['배송일자'] = raw_df.get(date_col, '').astype(str).str.replace('.0', '', regex=False).str.replace('-', '', regex=False).str.strip()
                     
                     raw_df = raw_df[raw_df['수량'] > 0].copy() 
+
+                    prod_col = next((c for c in ['상품코드', '바코드', '단품코드'] if c in raw_df.columns), None)
+                    if not prod_col:
+                        st.error("🚨 업로드한 파일에서 상품 코드(상품코드/바코드/단품코드) 컬럼을 찾을 수 없습니다.")
+                        st.stop()
+                    
+                    raw_df['상품코드_정리'] = raw_df[prod_col].astype(str).str.replace('.0', '', regex=False).str.strip()
 
                     emart_map_dict = {
                         'E-mart': {'9110': '81010902', '9120': '81010905', '9100': '81010903'},
@@ -384,12 +396,13 @@ with tab_emart:
                         return pd.Series([cust, mapped_code])
 
                     raw_df[['Customer', '배송코드']] = raw_df.apply(process_emart, axis=1)
-                    raw_df['상품코드'] = raw_df['상품코드'].astype(str).str.replace('.0', '', regex=False).str.strip()
                     
-                    merged_df = pd.merge(raw_df, emart_prod_df[['바코드', '상품코드(기획)', '상품명(기획)']], left_on='상품코드', right_on='바코드', how='left')
+                    emart_prod_df['바코드'] = emart_prod_df['바코드'].astype(str).str.replace('.0', '', regex=False).str.strip()
+                    
+                    merged_df = pd.merge(raw_df, emart_prod_df[['바코드', '상품코드(기획)', '상품명(기획)']], left_on='상품코드_정리', right_on='바코드', how='left')
                     
                     unmapped_mask = merged_df['상품코드(기획)'].isna()
-                    unmapped_barcodes = merged_df[unmapped_mask]['상품코드'].unique().tolist()
+                    unmapped_barcodes = merged_df[unmapped_mask]['상품코드_정리'].unique().tolist()
 
                     if unmapped_barcodes:
                         st.error(f"🚨 **구글 상품마스터에 등록되지 않은 바코드가 {len(unmapped_barcodes)}건 존재합니다!**")
@@ -397,23 +410,16 @@ with tab_emart:
                         st.link_button("🔗 구글 마스터 시트 열어서 추가하기", GOOGLE_SHEET_EDIT_URL)
                         st.markdown("---")
 
-                    merged_df['최종_상품코드'] = merged_df['상품코드(기획)'].fillna("⚠️미등록(" + merged_df['상품코드'] + ")")
+                    merged_df['최종_상품코드'] = merged_df['상품코드(기획)'].fillna("⚠️미등록(" + merged_df['상품코드_정리'] + ")")
                     merged_df['최종_상품명'] = merged_df['상품명(기획)'].fillna(merged_df.get('상품명', '⚠️미등록 상품'))
 
                     delivery_name_map = {
-                        '81010901': '이마트 백암물류센터', 
-                        '81010902': '이마트 시화물류센터', 
-                        '81010903': '이마트 대구물류센터',
-                        '81010905': '이마트 여주물류센터', 
-                        '81010906': '이마트 광주물류센터',
-                        '81010904': '이마트 노브랜드 여주2물류센터', 
-                        '81010968': '이마트 노브랜드 여주물류센터',
-                        '81010969': '이마트 노브랜드 시화물류센터', 
-                        '89011175': '이마트 노브랜드 대구물류(신규)',
-                        '81033036': '이마트 트레이더스 평택물류',
-                        '89011174': '이마트 트레이더스 대구물류', 
-                        '81011012': '이마트 트레이더스 여주물류',
-                        '81011010': '이마트 트레이더스 시화물류'
+                        '81010901': '이마트 백암물류센터', '81010902': '이마트 시화물류센터', '81010903': '이마트 대구물류센터',
+                        '81010905': '이마트 여주물류센터', '81010906': '이마트 광주물류센터',
+                        '81010904': '이마트 노브랜드 여주2물류센터', '81010968': '이마트 노브랜드 여주물류센터',
+                        '81010969': '이마트 노브랜드 시화물류센터', '89011175': '이마트 노브랜드 대구물류(신규)',
+                        '81033036': '이마트 트레이더스 평택물류', '89011174': '이마트 트레이더스 대구물류', 
+                        '81011012': '이마트 트레이더스 여주물류', '81011010': '이마트 트레이더스 시화물류'
                     }
 
                     merged_df['발주코드'] = '81010000'
@@ -435,7 +441,6 @@ with tab_emart:
                     
                     grouped_df['구분'] = "0" 
                     
-                    # 💡 발주처 정렬 순서: 노브랜드 -> 트레이더스 -> 이마트 순서 지정
                     cust_order = {'E-mart(노브랜드)': 1, 'E-mart(TRD)': 2, 'E-mart': 3}
                     grouped_df['발주처_순서'] = grouped_df['발주처'].map(cust_order).fillna(99)
                     
@@ -469,7 +474,7 @@ with tab_lotte:
     if store_df is None or prod_df is None:
         st.warning("⚠️ 구글 마스터 파일을 로드할 수 없습니다. 공유 설정을 확인해 주세요.")
     else:
-        lotte_prod_master = prod_df[prod_df['채널'] == '롯데마트'].copy()
+        lotte_prod_master = prod_df[prod_df['채널'].str.strip() == '롯데마트'].copy()
         
         def clean_lotte_code(val):
             s = str(val).strip()
