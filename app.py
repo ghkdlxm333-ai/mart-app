@@ -24,11 +24,17 @@ st.set_page_config(
 )
 
 # ==========================================
-# 🎨 B2B SaaS 스타일 커스텀 CSS (계정 툴바 강제 숨김 포함)
+# 🎨 B2B SaaS 스타일 커스텀 CSS (상단 헤더 툴바 완전 차단)
 # ==========================================
 st.markdown("""
 <style>
-    /* 🛠️ 스트림릿 기본 프로필, 헤더, 툴바, 풋터 및 플로팅 뱃지 완전히 숨기기 */
+    /* 🛠️ 스트림릿 상단 헤더 및 개발자 툴바 영역 완전 숨기기 */
+    header[data-testid="stHeader"] {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0px !important;
+    }
+    
     .viewerBadge_container__1QSob,
     .styles_viewerBadge__1yB5_,
     [data-testid="stToolbar"],
@@ -38,10 +44,10 @@ st.markdown("""
         display: none !important;
         visibility: hidden !important;
     }
+    
     #MainMenu {visibility: hidden !important;}
     footer {visibility: hidden !important;}
     .stDeployButton {display: none !important;}
-    [data-testid="stHeader"] { background-color: transparent !important; }
 
     @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
     html, body, [class*="css"]  { font-family: 'Pretendard', sans-serif !important; }
