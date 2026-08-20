@@ -24,18 +24,27 @@ st.set_page_config(
 )
 
 # ==========================================
-# 🎨 B2B SaaS 스타일 커스텀 CSS
+# 🎨 B2B SaaS 스타일 커스텀 CSS (계정 툴바 강제 숨김 포함)
 # ==========================================
 st.markdown("""
 <style>
-    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-    html, body, [class*="css"]  { font-family: 'Pretendard', sans-serif !important; }
-    [data-testid="stHeaderActionElements"] {display: none !important;}
-    [data-testid="stToolbar"] {display: none !important;}
+    /* 🛠️ 스트림릿 기본 프로필, 헤더, 툴바, 풋터 및 플로팅 뱃지 완전히 숨기기 */
+    .viewerBadge_container__1QSob,
+    .styles_viewerBadge__1yB5_,
+    [data-testid="stToolbar"],
+    [data-testid="stHeaderActionElements"],
+    [data-testid="stStatusWidget"],
+    div[class*="viewerBadge"] {
+        display: none !important;
+        visibility: hidden !important;
+    }
     #MainMenu {visibility: hidden !important;}
     footer {visibility: hidden !important;}
     .stDeployButton {display: none !important;}
     [data-testid="stHeader"] { background-color: transparent !important; }
+
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    html, body, [class*="css"]  { font-family: 'Pretendard', sans-serif !important; }
     .stApp { background-color: #ffffff; }
     [data-testid="stSidebar"] { background-color: #ffffff; border-right: 1px solid #f1f5f9; }
     .stTabs [data-baseweb="tab-list"] { gap: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 0px; }
@@ -325,7 +334,7 @@ with tab_tesco:
             st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟡 [TAB 2] 이마트 (이마트 / 트레이더스 / 노브랜드) 로직 (수정본 반영)
+# 🟡 [TAB 2] 이마트 (이마트 / 트레이더스 / 노브랜드) 로직
 # =====================================================================
 with tab_emart:
     st.markdown("### 이마트 (이마트/TRD/노브랜드) 발주 데이터 업로드")
@@ -336,7 +345,6 @@ with tab_emart:
         prod_df['채널_정리'] = prod_df['채널'].astype(str).str.strip()
         emart_prod_df = prod_df[prod_df['채널_정리'].isin(['이마트', '트레이더스', '노브랜드', 'E-mart', 'TRD'])].copy()
         
-        # 🔑 핵심 수정: 마스터 시트 내 중복 바코드 제거로 1:1 매칭 보장 (데이터 뻥튀기 방지)
         emart_prod_df['바코드'] = emart_prod_df['바코드'].astype(str).str.replace('.0', '', regex=False).str.strip()
         emart_prod_df = emart_prod_df.drop_duplicates(subset=['바코드']).copy()
         
@@ -468,7 +476,7 @@ with tab_emart:
                 st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟢 [TAB 3] 롯데마트 최종 로직 (.xlsx / .csv 전용 최적화)
+# 🟢 [TAB 3] 롯데마트 로직
 # =====================================================================
 with tab_lotte:
     st.markdown("### 롯데마트 EDI 발주 데이터 업로드")
@@ -489,13 +497,11 @@ with tab_lotte:
             s = re.sub(r'[^0-9]', '', s)
             return int(s) if s else 0
 
-        # 파일 업로더 (.xlsx, .csv 허용)
         file_lotte = st.file_uploader("📂 드래그 앤 드롭으로 파일을 업로드하세요 (xlsx/csv)", type=['xlsx', 'csv'], key="lotte")
         
         if file_lotte:
             try:
                 with st.spinner("🔄 롯데마트 데이터 정제 및 병합 중입니다..."):
-                    # 파일 형식에 따라 안전하게 읽기
                     if file_lotte.name.endswith('.csv'):
                         try:
                             df_edi = pd.read_csv(file_lotte, encoding='utf-8-sig', header=None)
