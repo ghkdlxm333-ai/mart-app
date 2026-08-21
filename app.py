@@ -24,33 +24,18 @@ st.set_page_config(
 )
 
 # ==========================================
-# 🎨 B2B SaaS 스타일 커스텀 CSS (상단 헤더 툴바 완전 차단)
+# 🎨 B2B SaaS 스타일 커스텀 CSS
 # ==========================================
 st.markdown("""
 <style>
-    /* 🛠️ 스트림릿 상단 헤더 및 개발자 툴바 영역 완전 숨기기 */
-    header[data-testid="stHeader"] {
-        display: none !important;
-        visibility: hidden !important;
-        height: 0px !important;
-    }
-    
-    .viewerBadge_container__1QSob,
-    .styles_viewerBadge__1yB5_,
-    [data-testid="stToolbar"],
-    [data-testid="stHeaderActionElements"],
-    [data-testid="stStatusWidget"],
-    div[class*="viewerBadge"] {
-        display: none !important;
-        visibility: hidden !important;
-    }
-    
+    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+    html, body, [class*="css"]  { font-family: 'Pretendard', sans-serif !important; }
+    [data-testid="stHeaderActionElements"] {display: none !important;}
+    [data-testid="stToolbar"] {display: none !important;}
     #MainMenu {visibility: hidden !important;}
     footer {visibility: hidden !important;}
     .stDeployButton {display: none !important;}
-
-    @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
-    html, body, [class*="css"]  { font-family: 'Pretendard', sans-serif !important; }
+    [data-testid="stHeader"] { background-color: transparent !important; }
     .stApp { background-color: #ffffff; }
     [data-testid="stSidebar"] { background-color: #ffffff; border-right: 1px solid #f1f5f9; }
     .stTabs [data-baseweb="tab-list"] { gap: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 0px; }
@@ -340,7 +325,7 @@ with tab_tesco:
             st.error(f"오류 발생: {e}")
 
 # =====================================================================
-# 🟡 [TAB 2] 이마트 (이마트 / 트레이더스 / 노브랜드) 로직
+# 🟡 [TAB 2] 이마트 (이마트 / 트레이더스 / 노브랜드) 로직 (수정본 반영)
 # =====================================================================
 with tab_emart:
     st.markdown("### 이마트 (이마트/TRD/노브랜드) 발주 데이터 업로드")
@@ -460,7 +445,8 @@ with tab_emart:
                     cust_order = {'E-mart(노브랜드)': 1, 'E-mart(TRD)': 2, 'E-mart': 3}
                     grouped_df['발주처_순서'] = grouped_df['발주처'].map(cust_order).fillna(99)
                     
-                    df_final = grouped_df.sort_values(by=['발주처_순서', '배송처', '상품명']).drop(columns=['발주처_순서']).reset_index(drop=True)
+                    # 🔑 핵심 수정: 발주처 순서 -> 납품일자(오름차순) -> 배송처 -> 상품명 순 정렬
+                    df_final = grouped_df.sort_values(by=['발주처_순서', '납품일자', '배송처', '상품명']).drop(columns=['발주처_순서']).reset_index(drop=True)
                     df_final = df_final[FINAL_COLUMNS].copy()
                     
                     st.success("✨ 이마트 데이터 정제 및 병합이 완료되었습니다!")
